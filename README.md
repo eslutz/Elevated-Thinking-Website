@@ -35,7 +35,7 @@ Check TypeScript types:
 npm run typecheck
 ```
 
-Format the project:
+Format the source code:
 
 ```bash
 npm run format
@@ -65,11 +65,11 @@ npm run preview
 
 This site deploys as static files. You do not need a Node server on Hostinger for this setup.
 
-1. Run the production build locally:
+1. Create the production build locally:
 
-```bash
-npm run build
-```
+    ```bash
+    npm run build
+    ```
 
 2. In Hostinger, open the site’s file manager or connect with FTP.
 
@@ -80,7 +80,8 @@ Common Hostinger web root locations are usually one of these:
 - `public_html/`
 - the domain’s assigned document root
 
-Important: upload the files inside `dist/`, not the `dist` folder itself unless you specifically want the site nested under that path.
+> [!IMPORTANT]
+> Upload the files inside `dist/`, not the `dist` folder itself unless you specifically want the site nested under that path.
 
 After upload, your deployed root should contain files like:
 
@@ -99,8 +100,11 @@ When you make content or design changes:
 
 ## Main Project Files
 
+- `package.json` - project dependencies and scripts
+- `tsconfig.json` - TypeScript configuration
+- `tsconfig.node.json` - TypeScript configuration for Vite config
+- `vite.config.ts` - Vite configuration
+- `index.html` - HTML shell used by Vite
 - `src/App.tsx` - main page component
 - `src/main.tsx` - React entry point
 - `src/styles.css` - global styles and Tailwind import
-- `index.html` - HTML shell used by Vite
-- `vite.config.ts` - Vite config

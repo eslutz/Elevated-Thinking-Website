@@ -4,6 +4,19 @@ export default {
   testEnvironment: "jsdom",
   moduleFileExtensions: ["ts", "tsx", "js", "jsx"],
   setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
+  collectCoverageFrom: [
+    "<rootDir>/src/**/*.{ts,tsx}",
+    "!<rootDir>/src/main.tsx",
+    "!<rootDir>/src/vite-env.d.ts",
+  ],
+  coverageThreshold: {
+    global: {
+      branches: 60,
+      functions: 60,
+      lines: 60,
+      statements: 60,
+    },
+  },
   transform: {
     "^.+\\.(t|j)sx?$": [
       "@swc/jest",

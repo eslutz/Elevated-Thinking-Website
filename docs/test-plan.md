@@ -15,6 +15,7 @@
 - Scope:
   - Component-level rendering checks
   - Content and structural assertions for key sections
+  - Minimum 60% global coverage for statements, branches, functions, and lines
 - Location: `tests/unit/*.test.tsx`
 - Command:
   - Local and CI: `npm run test:unit`
@@ -41,17 +42,23 @@
 
 ### Pull Request Preview (`.github/workflows/pr-preview.yml`)
 
-Required order in `verify` job:
+Required PR checks:
 
-1. `npm ci`
-2. `npm run format:check`
-3. `npm run typecheck`
-4. `npm run test:unit`
-5. Playwright browser install
-6. `npm run test:smoke`
-7. Upload Playwright HTML report artifact
-8. PR preview build with PR-specific Vite base path
-9. Artifact upload and preview publish
+1. `unit_tests`
+2. `smoke_tests`
+
+PR preview build flow:
+
+1. `unit_tests` runs `npm ci`
+2. `unit_tests` runs `npm run format:check`
+3. `unit_tests` runs `npm run typecheck`
+4. `unit_tests` runs `npm run test:unit -- --coverage`
+5. `unit_tests` uploads the coverage artifact and summary
+6. `smoke_tests` runs `npm ci`
+7. `smoke_tests` installs Playwright browser dependencies
+8. `smoke_tests` runs `npm run test:smoke`
+9. `smoke_tests` uploads the Playwright HTML report artifact
+10. `build_preview` publishes the preview artifact after both required checks pass
 
 ### Production (`.github/workflows/deploy-production.yml`)
 

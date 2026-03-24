@@ -42,7 +42,24 @@ jobs:
       - name: Check types
         run: npm run typecheck
 
-      - name: Build PR preview
+      - name: Run unit tests
+        run: npm run test:unit
+
+      - name: Install Playwright browser dependencies
+        run: npx playwright install --with-deps chromium
+
+      - name: Run smoke tests
+        run: npm run test:smoke
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report-pr-${{ github.event.pull_request.number }}
+          path: playwright-report/
+          if-no-files-found: ignore
+
+      - name: Build PR preview bundle
         run: >-
           npm run build -- --base=/${{ github.event.repository.name }}/previews/pr-${{ github.event.pull_request.number }}/
 

@@ -1,6 +1,6 @@
 # Elevated Thinking Website
 
-This project is a minimal Vite + React + TypeScript single-page site with Tailwind bundled through Vite.
+This project is a static Vite + React + TypeScript site with Tailwind bundled through Vite.
 
 ## Requirements
 
@@ -35,6 +35,12 @@ Check TypeScript types:
 npm run typecheck
 ```
 
+Check formatting:
+
+```bash
+npm run format:check
+```
+
 Format the source code:
 
 ```bash
@@ -61,42 +67,161 @@ If you want to preview the production build locally:
 npm run preview
 ```
 
-## Deploying To Hostinger
+## CI/CD Overview
+
+GitHub Actions handles both preview and production deployments:
+
+- Pull requests run formatting, type-checking, and a PR-specific build.
+- Successful PR builds publish a preview to GitHub Pages at:
+
+  ```text
+  https://<owner>.github.io/<repo>/previews/pr-<number>/
+  ```
+
+- Closing or merging a PR removes its preview from the `gh-pages` branch.
+- Pushes to `main` rerun verification, deploy the production build to Hostinger over SFTP, and create a GitHub release for the deployed commit.
+
+The workflows live in:
+
+- `.github/workflows/pr-preview.yml`
+- `.github/workflows/deploy-production.yml`
+
+## GitHub Setup
+
+### 1. Enable GitHub Pages
+
+In the repository settings:
+
+1. Open `Settings -> Pages`.
+2. Set the source to `Deploy from a branch`.
+3. Choose the `gh-pages` branch and `/ (root)`.
+
+GitHub Pages will then serve the PR preview files written by the workflow.
+
+### 2. Configure Branch Protection For `main`
+
+GitHub branch protection is a repository setting, not a tracked file in this repo. Configure it manually:
+
+1. Open `Settings -> Branches`.
+2. Add a branch protection rule for `main`.
+3. Require at least one approval before merge.
+4. Require status checks to pass before merge.
+5. Select the `verify` job from the GitHub Actions workflows.
+6. Restrict direct pushes to `main`.
+
+This is what ensures production deploys only happen after reviewed code is merged.
+
+### 3. Configure GitHub Environments
+
+This setup now uses two repository environments:
+
+- `nonprod`
+- `prod`
+
+Recommended usage:
+
+- Use `nonprod` for PR preview deployments so GitHub records each preview deployment and its live preview URL.
+- Use `prod` for production deploys so Hostinger secrets and optional deployment approvals are isolated to production only.
+
+GitHub environments can enforce required reviewers, wait timers, deployment branch restrictions, and separate secrets and variables. GitHub documents these controls in its deployment environment docs and notes that jobs referencing an environment create deployment records with an optional `environment_url`. [GitHub docs](https://docs.github.com/en/actions/reference/environments) [GitHub docs](https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/using-environments-for-deployment?apiVersion=2022-11-28)
+
+Recommended configuration:
+
+1. Open `Settings -> Environments`.
+2. Create an environment named `nonprod`.
+3. Create an environment named `prod`.
+4. On `prod`, optionally require reviewer approval before the deploy job runs.
+5. On `prod`, optionally restrict deployments to the `main` branch.
+6. On `prod`, add the Hostinger secrets listed below.
+7. On `prod`, optionally add a variable named `PROD_SITE_URL` with the public production site URL so GitHub shows a clickable deployment URL for production.
+
+### 4. Add Hostinger Secrets
+
+Add these exact secret names in GitHub, preferably on the `prod` environment:
+
+- `HOSTINGER_HOST`
+- `HOSTINGER_PORT`
+- `HOSTINGER_USERNAME`
+- `HOSTINGER_PASSWORD`
+- `HOSTINGER_REMOTE_PATH`
+
+Recommended values:
+
+- `HOSTINGER_PORT`: `22`
+- `HOSTINGER_REMOTE_PATH`: `public_html/`
+
+The production workflow deploy job reads them from the `prod` environment.
+
+## Preview Deployment Details
+
+PR previews are built with a PR-specific Vite base path so asset URLs resolve correctly on GitHub Pages:
+
+```text
+/<repo>/previews/pr-<number>/
+```
+
+The workflow publishes the built files to:
+
+```text
+gh-pages/previews/pr-<number>/
+```
+
+Each preview job also posts or updates a PR comment with the live preview URL.
+
+If your team accepts PRs from forks, note that the current preview publish step only runs for PRs opened from branches in the same repository. The verification job still runs for forked PRs.
+
+The PR preview deploy job targets the `nonprod` environment and records the preview URL as the environment deployment URL in GitHub.
+
+## Production Deployment Details
+
+Production deploys run on every push to `main`, which should only happen through approved pull request merges.
+
+The production workflow:
+
+1. Runs `npm ci`
+2. Runs `npm run format:check`
+3. Runs `npm run typecheck`
+4. Runs `npm run build`
+5. Uploads the `dist/` artifact
+6. Mirrors `dist/` to Hostinger over SFTP with remote delete enabled
+7. Creates a GitHub release tagged as `prod-<full-commit-sha>` for the deployed commit
+
+The production deploy job targets the `prod` environment. If you configure required reviewers on that environment, the deploy job will pause for approval before it can access the Hostinger secrets and proceed. GitHub documents this behavior in its environment and deployment docs. [GitHub docs](https://docs.github.com/en/actions/reference/environments) [GitHub docs](https://docs.github.com/actions/how-tos/deploy/configure-and-manage-deployments/control-deployments)
 
 This site deploys as static files. You do not need a Node server on Hostinger for this setup.
 
-1. Create the production build locally:
-
-    ```bash
-    npm run build
-    ```
-
-2. In Hostinger, open the site’s file manager or connect with FTP.
-
-3. Upload the contents of the local `dist/` folder to your site’s web root.
-
-Common Hostinger web root locations are usually one of these:
-
-- `public_html/`
-- the domain’s assigned document root
-
-> [!IMPORTANT]
-> Upload the files inside `dist/`, not the `dist` folder itself unless you specifically want the site nested under that path.
-
-After upload, your deployed root should contain files like:
+After deployment, the Hostinger web root should contain files like:
 
 ```text
 index.html
 assets/...
 ```
 
-## Updating The Site
+## Rollback And Retry
 
-When you make content or design changes:
+- To retry a failed deployment, rerun the relevant workflow in the GitHub Actions tab.
+- To roll back production, rerun the production workflow from an older successful commit or revert the merge on `main`.
+- To rebuild a preview, push a new commit to the PR branch or rerun the PR preview workflow.
 
-1. Edit the source files.
-2. Run `npm run build` again.
-3. Re-upload the updated contents of `dist/` to Hostinger.
+## Action Versioning
+
+The workflows are pinned to the current latest official tags that were available when this was updated:
+
+- `actions/checkout@v6.0.1`
+- `actions/setup-node@v6.1.0`
+- `actions/upload-artifact@v7.0.0`
+- `actions/download-artifact@v8.0.1`
+- `actions/github-script@v8.0.0`
+
+Those versions were verified from the official GitHub action release pages:
+
+- [actions/checkout releases](https://github.com/actions/checkout/releases)
+- [actions/setup-node releases](https://github.com/actions/setup-node/releases)
+- [actions/upload-artifact releases](https://github.com/actions/upload-artifact/releases)
+- [actions/download-artifact releases](https://github.com/actions/download-artifact/releases)
+- [actions/github-script releases](https://github.com/actions/github-script/releases)
+
+Dependabot is also configured in `.github/dependabot.yml` to keep GitHub Actions and npm dependencies up to date automatically.
 
 ## Main Project Files
 

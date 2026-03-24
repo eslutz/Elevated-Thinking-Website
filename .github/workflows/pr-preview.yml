@@ -1,0 +1,190 @@
+name: PR Preview
+
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - closed
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Check types
+        run: npm run typecheck
+
+      - name: Build PR preview
+        run: >-
+          npm run build -- --base=/${{ github.event.repository.name }}/previews/pr-${{ github.event.pull_request.number }}/
+
+      - name: Upload preview artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: pr-preview-dist
+          path: dist
+          if-no-files-found: error
+
+  deploy_preview:
+    if: >-
+      github.event.action != 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      deployments: write
+      pull-requests: write
+    environment:
+      name: nonprod
+      url: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/previews/pr-${{ github.event.pull_request.number }}/
+    steps:
+      - name: Download preview artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: pr-preview-dist
+          path: dist
+
+      - name: Publish preview to gh-pages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PREVIEW_DIR: previews/pr-${{ github.event.pull_request.number }}
+          REPO_URL: https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+        run: |
+          set -euo pipefail
+
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if git ls-remote --exit-code --heads "$REPO_URL" gh-pages >/dev/null 2>&1; then
+            git clone --depth 1 --branch gh-pages "$REPO_URL" gh-pages
+          else
+            git init gh-pages
+            (
+              cd gh-pages
+              git checkout --orphan gh-pages
+              touch .nojekyll
+              git add .nojekyll
+              git commit -m "Initialize GitHub Pages branch"
+              git remote add origin "$REPO_URL"
+              git push origin gh-pages
+            )
+          fi
+
+          mkdir -p "gh-pages/$PREVIEW_DIR"
+          rsync -a --delete dist/ "gh-pages/$PREVIEW_DIR/"
+          touch gh-pages/.nojekyll
+
+          (
+            cd gh-pages
+            git add -A .
+
+            if git diff --cached --quiet; then
+              echo "No preview changes to publish."
+              exit 0
+            fi
+
+            git commit -m "Deploy preview for PR #${{ github.event.pull_request.number }}"
+            git push origin gh-pages
+          )
+
+      - name: Comment preview URL
+        uses: actions/github-script@v8
+        env:
+          PREVIEW_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/previews/pr-${{ github.event.pull_request.number }}/
+        with:
+          script: |
+            const marker = '<!-- pr-preview-url -->';
+            const body = `${marker}\nPreview deployed: ${process.env.PREVIEW_URL}`;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const existing = comments.find((comment) =>
+              comment.user.type === 'Bot' && comment.body.includes(marker)
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+              return;
+            }
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
+
+  cleanup_preview:
+    if: github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Remove preview from gh-pages
+        env:
+          REPO_URL: https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+          PREVIEW_DIR: previews/pr-${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if ! git ls-remote --exit-code --heads "$REPO_URL" gh-pages >/dev/null 2>&1; then
+            echo "gh-pages branch does not exist. Nothing to clean up."
+            exit 0
+          fi
+
+          git clone --depth 1 --branch gh-pages "$REPO_URL" gh-pages
+          rm -rf "gh-pages/$PREVIEW_DIR"
+
+          (
+            cd gh-pages
+            git add -A .
+
+            if git diff --cached --quiet; then
+              echo "Preview directory already absent."
+              exit 0
+            fi
+
+            git commit -m "Remove preview for PR #${{ github.event.pull_request.number }}"
+            git push origin gh-pages
+          )

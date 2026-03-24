@@ -61,7 +61,7 @@ jobs:
 
       - name: Build PR preview bundle
         run: >-
-          npm run build -- --base=/${{ github.event.repository.name }}/previews/pr-${{ github.event.pull_request.number }}/
+          npm run build -- --base=/${{ github.event.repository.name }}/pr-${{ github.event.pull_request.number }}/
 
       - name: Upload preview artifact
         uses: actions/upload-artifact@v7
@@ -89,7 +89,7 @@ jobs:
       - name: Publish preview to gh-pages
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PREVIEW_DIR: previews/pr-${{ github.event.pull_request.number }}
+          PREVIEW_DIR: pr-${{ github.event.pull_request.number }}
           REPO_URL: https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
         run: |
           set -euo pipefail
@@ -132,7 +132,7 @@ jobs:
       - name: Comment preview URL
         uses: actions/github-script@v8
         env:
-          PREVIEW_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/previews/pr-${{ github.event.pull_request.number }}/
+          PREVIEW_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/pr-${{ github.event.pull_request.number }}/
         with:
           script: |
             const marker = '<!-- pr-preview-url -->';
@@ -174,7 +174,7 @@ jobs:
       - name: Remove preview from gh-pages
         env:
           REPO_URL: https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
-          PREVIEW_DIR: previews/pr-${{ github.event.pull_request.number }}
+          PREVIEW_DIR: pr-${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
 

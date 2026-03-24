@@ -93,7 +93,7 @@ GitHub Actions handles both preview and production deployments:
 - Successful PR builds publish a preview to GitHub Pages at:
 
   ```text
-  https://<owner>.github.io/<repo>/previews/pr-<number>/
+  https://<owner>.github.io/<repo>/pr-<number>/
   ```
 
 - Closing or merging a PR removes its preview from the `gh-pages` branch.
@@ -179,13 +179,13 @@ The production workflow deploy job reads them from the `prod` environment.
 PR previews are built with a PR-specific Vite base path so asset URLs resolve correctly on GitHub Pages:
 
 ```text
-/<repo>/previews/pr-<number>/
+/<repo>/pr-<number>/
 ```
 
 The workflow publishes the built files to:
 
 ```text
-gh-pages/previews/pr-<number>/
+gh-pages/pr-<number>/
 ```
 
 Each preview job also posts or updates a PR comment with the live preview URL.

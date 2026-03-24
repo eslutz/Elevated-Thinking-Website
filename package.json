@@ -10,6 +10,7 @@
     "prepare": "node scripts/configure-git-hooks.mjs",
     "test:unit": "jest",
     "test:watch:unit": "jest --watch",
+    "test:smoke": "npm run build && playwright test",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
@@ -19,6 +20,8 @@
     "react-dom": "^19.2.4"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.1",
+    "@playwright/test": "^1.58.2",
     "@swc/core": "^1.15.21",
     "@swc/jest": "^0.2.39",
     "@tailwindcss/vite": "^4.2.2",

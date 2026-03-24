@@ -47,6 +47,24 @@ Format the source code:
 npm run format
 ```
 
+Run unit tests:
+
+```bash
+npm run test:unit
+```
+
+Run UI smoke tests against the production preview server:
+
+```bash
+npm run test:smoke
+```
+
+Formatting is enforced before commit with the committed Git hook in `.githooks/pre-commit`. `npm install` runs `prepare`, which configures Git to use that hooks directory for the repository.
+
+Local smoke tests use the installed Google Chrome browser channel. CI installs Playwright's managed Chromium before running the same smoke suite.
+The smoke suite also includes an automated WCAG A/AA accessibility scan using `@axe-core/playwright`.
+GitHub Actions uploads the Playwright HTML report as an artifact for each smoke-test run.
+
 ## Production Build
 
 Create the production build:
@@ -71,7 +89,7 @@ npm run preview
 
 GitHub Actions handles both preview and production deployments:
 
-- Pull requests run formatting, type-checking, and a PR-specific build.
+- Pull requests run formatting, type-checking, Jest unit tests, and Playwright UI smoke tests before publishing a PR-specific build.
 - Successful PR builds publish a preview to GitHub Pages at:
 
   ```text
@@ -79,12 +97,16 @@ GitHub Actions handles both preview and production deployments:
   ```
 
 - Closing or merging a PR removes its preview from the `gh-pages` branch.
-- Pushes to `main` rerun verification, deploy the production build to Hostinger over SFTP, and create a GitHub release for the deployed commit.
+- Pushes of version tags like `v1.2.3` rerun verification, deploy with blue/green slots to Hostinger over SFTP, and create a GitHub release for that tag.
 
 The workflows live in:
 
 - `.github/workflows/pr-preview.yml`
 - `.github/workflows/deploy-production.yml`
+
+Detailed testing/deployment plan:
+
+- `docs/test-plan.md`
 
 ## GitHub Setup
 
@@ -109,7 +131,7 @@ GitHub branch protection is a repository setting, not a tracked file in this rep
 5. Select the `verify` job from the GitHub Actions workflows.
 6. Restrict direct pushes to `main`.
 
-This is what ensures production deploys only happen after reviewed code is merged.
+This is what ensures release tags are only cut from reviewed code that has already landed on `main`.
 
 ### 3. Configure GitHub Environments
 
@@ -131,7 +153,7 @@ Recommended configuration:
 1. Open `Settings -> Environments`.
 2. Create an environment named `prod`.
 3. On `prod`, optionally require reviewer approval before the deploy job runs.
-4. On `prod`, optionally restrict deployments to the `main` branch.
+4. On `prod`, optionally restrict deployments to release tags.
 5. On `prod`, add the Hostinger secrets listed below.
 6. On `prod`, optionally add a variable named `PROD_SITE_URL` with the public production site URL so GitHub shows a clickable deployment URL for production.
 
@@ -174,17 +196,29 @@ GitHub Pages will show these deployments under its managed `github-pages` enviro
 
 ## Production Deployment Details
 
-Production deploys run on every push to `main`, which should only happen through approved pull request merges.
+Production deploys run on pushes of release tags matching `v*`.
+
+Recommended release flow:
+
+```bash
+npm version patch
+git push --follow-tags
+```
+
+Use `patch`, `minor`, or `major` as appropriate. The `npm version` command updates `package.json`, updates `package-lock.json`, creates a Git commit, and creates the matching Git tag. Pushing with `--follow-tags` sends both the release commit and the tag to GitHub, which triggers the production workflow.
 
 The production workflow:
 
 1. Runs `npm ci`
-2. Runs `npm run format:check`
-3. Runs `npm run typecheck`
-4. Runs `npm run build`
-5. Uploads the `dist/` artifact
-6. Mirrors `dist/` to Hostinger over SFTP with remote delete enabled
-7. Creates a GitHub release tagged as `prod-<full-commit-sha>` for the deployed commit
+2. Verifies the pushed Git tag matches the version in `package.json`
+3. Runs `npm run format:check`
+4. Runs `npm run typecheck`
+5. Runs `npm run test:unit`
+6. Runs Playwright smoke tests (`npm run test:smoke`)
+7. Uploads the `dist/` artifact
+8. Deploys to an inactive blue/green slot and then promotes the same release to the live Hostinger path
+9. Updates `.deploy-slots/.active-slot` so rollback target selection is deterministic
+10. Creates a GitHub release for the deployed version tag
 
 The production deploy job targets the `prod` environment. If you configure required reviewers on that environment, the deploy job will pause for approval before it can access the Hostinger secrets and proceed. GitHub documents this behavior in its environment and deployment docs. [GitHub docs](https://docs.github.com/en/actions/reference/environments) [GitHub docs](https://docs.github.com/actions/how-tos/deploy/configure-and-manage-deployments/control-deployments)
 
@@ -200,7 +234,8 @@ assets/...
 ## Rollback And Retry
 
 - To retry a failed deployment, rerun the relevant workflow in the GitHub Actions tab.
-- To roll back production, rerun the production workflow from an older successful commit or revert the merge on `main`.
+- To roll back production quickly, run `Production Deploy` manually with `operation=rollback` (and optionally `rollback_slot=blue|green`).
+- To ship a new production release, cut and push a new version tag with `npm version <patch|minor|major>` and `git push --follow-tags`.
 - To rebuild a preview, push a new commit to the PR branch or rerun the PR preview workflow.
 
 ## Action Versioning

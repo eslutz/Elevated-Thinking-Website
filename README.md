@@ -113,27 +113,27 @@ This is what ensures production deploys only happen after reviewed code is merge
 
 ### 3. Configure GitHub Environments
 
-This setup now uses two repository environments:
+This setup uses one custom repository environment:
 
-- `nonprod`
 - `prod`
+
+GitHub Pages still creates and uses its own managed `github-pages` environment for Pages hosting. That is expected and should not be replaced.
 
 Recommended usage:
 
-- Use `nonprod` for PR preview deployments so GitHub records each preview deployment and its live preview URL.
-- Use `prod` for production deploys so Hostinger secrets and optional deployment approvals are isolated to production only.
+- Use GitHub Pages for PR preview hosting.
+- Use `prod` for production deploys so Hostinger secrets and deployment approvals are isolated to production only.
 
 GitHub environments can enforce required reviewers, wait timers, deployment branch restrictions, and separate secrets and variables. GitHub documents these controls in its deployment environment docs and notes that jobs referencing an environment create deployment records with an optional `environment_url`. [GitHub docs](https://docs.github.com/en/actions/reference/environments) [GitHub docs](https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/using-environments-for-deployment?apiVersion=2022-11-28)
 
 Recommended configuration:
 
 1. Open `Settings -> Environments`.
-2. Create an environment named `nonprod`.
-3. Create an environment named `prod`.
-4. On `prod`, optionally require reviewer approval before the deploy job runs.
-5. On `prod`, optionally restrict deployments to the `main` branch.
-6. On `prod`, add the Hostinger secrets listed below.
-7. On `prod`, optionally add a variable named `PROD_SITE_URL` with the public production site URL so GitHub shows a clickable deployment URL for production.
+2. Create an environment named `prod`.
+3. On `prod`, optionally require reviewer approval before the deploy job runs.
+4. On `prod`, optionally restrict deployments to the `main` branch.
+5. On `prod`, add the Hostinger secrets listed below.
+6. On `prod`, optionally add a variable named `PROD_SITE_URL` with the public production site URL so GitHub shows a clickable deployment URL for production.
 
 ### 4. Add Hostinger Secrets
 
@@ -170,7 +170,7 @@ Each preview job also posts or updates a PR comment with the live preview URL.
 
 If your team accepts PRs from forks, note that the current preview publish step only runs for PRs opened from branches in the same repository. The verification job still runs for forked PRs.
 
-The PR preview deploy job targets the `nonprod` environment and records the preview URL as the environment deployment URL in GitHub.
+GitHub Pages will show these deployments under its managed `github-pages` environment. There is no separate custom non-production environment in this simplified setup.
 
 ## Production Deployment Details
 

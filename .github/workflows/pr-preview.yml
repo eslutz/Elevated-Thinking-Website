@@ -173,8 +173,17 @@ jobs:
         run: npm ci
 
       - name: Build PR preview bundle
-        run: >-
-          npm run build -- --base=/${{ github.event.repository.name }}/preview/pr-${{ github.event.pull_request.number }}/
+        env:
+          REPO_OWNER: ${{ github.repository_owner }}
+          REPO_NAME: ${{ github.event.repository.name }}
+        run: |
+          if [ "$REPO_NAME" = "$REPO_OWNER.github.io" ]; then
+            SITE_PREFIX=""
+          else
+            SITE_PREFIX="/$REPO_NAME"
+          fi
+
+          npm run build -- --base="${SITE_PREFIX}/preview/pr-${{ github.event.pull_request.number }}/"
 
       - name: Upload PR preview artifact
         uses: actions/upload-artifact@v7
@@ -204,7 +213,17 @@ jobs:
         run: npm ci
 
       - name: Build main preview bundle
-        run: npm run build -- --base=/${{ github.event.repository.name }}/preview/
+        env:
+          REPO_OWNER: ${{ github.repository_owner }}
+          REPO_NAME: ${{ github.event.repository.name }}
+        run: |
+          if [ "$REPO_NAME" = "$REPO_OWNER.github.io" ]; then
+            SITE_PREFIX=""
+          else
+            SITE_PREFIX="/$REPO_NAME"
+          fi
+
+          npm run build -- --base="${SITE_PREFIX}/preview/"
 
       - name: Upload main preview artifact
         uses: actions/upload-artifact@v7
@@ -267,7 +286,15 @@ jobs:
 
           OPEN_PRS_JSON="$(curl -sSf -H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls?state=open&per_page=100")"
           REPO_NAME="${GITHUB_REPOSITORY#*/}"
-          export OPEN_PRS_JSON REPO_NAME
+          REPO_OWNER="${GITHUB_REPOSITORY%%/*}"
+
+          if [ "$REPO_NAME" = "$REPO_OWNER.github.io" ]; then
+            SITE_PREFIX=""
+          else
+            SITE_PREFIX="/$REPO_NAME"
+          fi
+
+          export OPEN_PRS_JSON REPO_NAME SITE_PREFIX
 
           node scripts/build-preview-index.mjs gh-pages/index.html
 
@@ -286,12 +313,16 @@ jobs:
 
       - name: Comment preview URL
         uses: actions/github-script@v8
-        env:
-          PREVIEW_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/preview/pr-${{ github.event.pull_request.number }}/
         with:
           script: |
             const marker = '<!-- pr-preview-url -->';
-            const body = `${marker}\nPreview deployed: ${process.env.PREVIEW_URL}`;
+            const repoName = context.repo.repo;
+            const owner = context.repo.owner;
+            const sitePrefix = repoName.toLowerCase() === `${owner.toLowerCase()}.github.io`
+              ? ''
+              : `/${repoName}`;
+            const previewUrl = `https://${owner}.github.io${sitePrefix}/preview/pr-${context.issue.number}/`;
+            const body = `${marker}\nPreview deployed: ${previewUrl}`;
 
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
@@ -370,7 +401,15 @@ jobs:
 
           OPEN_PRS_JSON="$(curl -sSf -H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls?state=open&per_page=100")"
           REPO_NAME="${GITHUB_REPOSITORY#*/}"
-          export OPEN_PRS_JSON REPO_NAME
+          REPO_OWNER="${GITHUB_REPOSITORY%%/*}"
+
+          if [ "$REPO_NAME" = "$REPO_OWNER.github.io" ]; then
+            SITE_PREFIX=""
+          else
+            SITE_PREFIX="/$REPO_NAME"
+          fi
+
+          export OPEN_PRS_JSON REPO_NAME SITE_PREFIX
 
           node scripts/build-preview-index.mjs gh-pages/index.html
 
@@ -420,7 +459,15 @@ jobs:
 
           OPEN_PRS_JSON="$(curl -sSf -H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls?state=open&per_page=100")"
           REPO_NAME="${GITHUB_REPOSITORY#*/}"
-          export OPEN_PRS_JSON REPO_NAME
+          REPO_OWNER="${GITHUB_REPOSITORY%%/*}"
+
+          if [ "$REPO_NAME" = "$REPO_OWNER.github.io" ]; then
+            SITE_PREFIX=""
+          else
+            SITE_PREFIX="/$REPO_NAME"
+          fi
+
+          export OPEN_PRS_JSON REPO_NAME SITE_PREFIX
 
           node scripts/build-preview-index.mjs gh-pages/index.html
 

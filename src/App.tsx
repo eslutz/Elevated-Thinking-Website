@@ -39,7 +39,7 @@ export default function ElevatedOnePageSite() {
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
           <a
             href="#top"
-            className="flex items-center gap-3 text-inherit"
+            className="flex items-center gap-3"
             aria-label="Elevated home"
           >
             <div
@@ -52,15 +52,9 @@ export default function ElevatedOnePageSite() {
             className="hidden gap-8 text-sm text-[var(--color-primary)] md:flex"
             aria-label="Primary"
           >
-            <a href="#services" className="text-inherit">
-              Services
-            </a>
-            <a href="#approach" className="text-inherit">
-              Approach
-            </a>
-            <a href="#contact" className="text-inherit">
-              Contact
-            </a>
+            <a href="#services">Services</a>
+            <a href="#approach">Approach</a>
+            <a href="#contact">Contact</a>
           </nav>
         </div>
       </header>
@@ -80,7 +74,7 @@ export default function ElevatedOnePageSite() {
             </p>
             <a
               href="#contact"
-              className="mt-8 inline-flex rounded-xl bg-[var(--color-primary)] px-6 py-3 text-white"
+              className="mt-8 inline-block rounded-xl bg-[var(--color-primary)] px-6 py-3 text-white"
             >
               Start a conversation
             </a>
@@ -155,7 +149,7 @@ export default function ElevatedOnePageSite() {
                 Bring us in when the problem spans teams, systems, or
                 consequences.
               </h2>
-              <p className="mt-4 text-[var(--color-text)]">
+              <p className="mt-4 text-[var(--color-primary)]/90">
                 Especially early, before decisions calcify into expensive
                 problems.
               </p>

@@ -89,8 +89,9 @@ npm run preview
 
 GitHub Actions handles both preview and production deployments:
 
-- Pull requests run separate `unit_tests` and `smoke_tests` jobs before publishing a PR-specific build.
+- Pull requests run separate `validate`, `unit_tests`, and `smoke_tests` jobs before publishing a PR-specific build.
 - The `unit_tests` job enforces a minimum 60% global Jest coverage threshold.
+- The `validate` job isolates formatting and TypeScript failures from test failures.
 - The `smoke_tests` job uploads a Playwright HTML report artifact so the PR check links lead to inspectable test output.
 - Successful PR builds publish a preview to GitHub Pages at:
 
@@ -130,7 +131,7 @@ GitHub branch protection is a repository setting, not a tracked file in this rep
 2. Add a branch protection rule for `main`.
 3. Require at least one approval before merge.
 4. Require status checks to pass before merge.
-5. Select `unit_tests` and `smoke_tests` from the GitHub Actions workflows.
+5. Select `validate`, `unit_tests`, and `smoke_tests` from the GitHub Actions workflows.
 6. Restrict direct pushes to `main`.
 
 This is what ensures release tags are only cut from reviewed code that has already landed on `main`.

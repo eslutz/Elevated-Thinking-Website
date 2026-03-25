@@ -61,7 +61,7 @@ npm run test:smoke
 
 Formatting is enforced before commit with the committed Git hook in `.githooks/pre-commit`. `npm install` runs `prepare`, which configures Git to use that hooks directory for the repository.
 
-Local smoke tests use the installed Google Chrome browser channel. CI installs Playwright's managed Chromium before running the same smoke suite.
+Smoke tests use Playwright's Chromium browser runtime in both local and CI environments (install with `npx playwright install --with-deps chromium` when needed).
 The smoke suite also includes an automated WCAG A/AA accessibility scan using `@axe-core/playwright`.
 GitHub Actions uploads the Playwright HTML report as an artifact for each smoke-test run.
 

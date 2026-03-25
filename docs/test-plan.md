@@ -32,7 +32,7 @@
 - Command:
   - Local and CI: `npm run test:smoke`
 - Browser install:
-  - Local: uses the installed Google Chrome channel
+  - Local: run `npx playwright install --with-deps chromium` before smoke tests when the browser is not already installed
   - CI: run `npx playwright install --with-deps chromium` before smoke tests
 - Playwright model:
   - `@playwright/test` is a project dependency
@@ -60,7 +60,7 @@ PR preview build flow:
 8. `smoke_tests` installs Playwright browser dependencies
 9. `smoke_tests` runs `npm run test:smoke`
 10. `smoke_tests` uploads the Playwright HTML report artifact
-11. `build_preview` publishes the preview artifact after all required checks pass
+11. `build_pr_preview` publishes the preview artifact after all required checks pass
 
 ### Production (`.github/workflows/deploy-production.yml`)
 

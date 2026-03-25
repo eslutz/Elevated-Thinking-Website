@@ -175,12 +175,18 @@ export default function ElevatedOnePageSite() {
           </div>
           <address className="text-sm not-italic">
             <div>
-              <a href="mailto:lindsey@elevatedthinking.co?subject=Hello">
+              <a
+                className="text-inherit"
+                href="mailto:lindsey@elevatedthinking.co?subject=Hello"
+              >
                 lindsey@elevatedthinking.co
               </a>
             </div>
             <div>
-              <a href="mailto:paul@elevatedthinking.co?subject=Hello">
+              <a
+                className="text-inherit"
+                href="mailto:paul@elevatedthinking.co?subject=Hello"
+              >
                 paul@elevatedthinking.co
               </a>
             </div>

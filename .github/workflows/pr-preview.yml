@@ -16,7 +16,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  verify:
+  validate:
     if: github.event.action != 'closed'
     runs-on: ubuntu-latest
     permissions:
@@ -42,9 +42,132 @@ jobs:
       - name: Check types
         run: npm run typecheck
 
-      - name: Build PR preview
+  unit_tests:
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests
         run: >-
-          npm run build -- --base=/${{ github.event.repository.name }}/previews/pr-${{ github.event.pull_request.number }}/
+          npm run test:unit -- --coverage
+          --coverageReporters=text-summary
+          --coverageReporters=lcov
+          --coverageReporters=json-summary
+
+      - name: Upload coverage artifact
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-pr-${{ github.event.pull_request.number }}
+          path: coverage/
+          if-no-files-found: ignore
+
+      - name: Publish coverage summary
+        if: ${{ !cancelled() }}
+        run: |
+          node <<'EOF'
+          const fs = require('node:fs');
+          const summaryPath = 'coverage/coverage-summary.json';
+
+          if (!fs.existsSync(summaryPath)) {
+            process.exit(0);
+          }
+
+          const summary = JSON.parse(fs.readFileSync(summaryPath, 'utf8')).total;
+          const rows = [
+            ['Statements', summary.statements.pct],
+            ['Branches', summary.branches.pct],
+            ['Functions', summary.functions.pct],
+            ['Lines', summary.lines.pct],
+          ];
+
+          const body = [
+            '## Unit Test Coverage',
+            '',
+            '| Metric | Coverage |',
+            '| --- | ---: |',
+            ...rows.map(([label, value]) => `| ${label} | ${value}% |`),
+          ].join('\n');
+
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${body}\n`);
+          EOF
+
+  smoke_tests:
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browser dependencies
+        run: npx playwright install --with-deps chromium
+
+      - name: Run smoke tests
+        run: npm run test:smoke
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report-pr-${{ github.event.pull_request.number }}
+          path: playwright-report/
+          if-no-files-found: ignore
+
+  build_preview:
+    if: github.event.action != 'closed'
+    needs:
+      - validate
+      - unit_tests
+      - smoke_tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build PR preview bundle
+        run: >-
+          npm run build -- --base=/${{ github.event.repository.name }}/pr-${{ github.event.pull_request.number }}/
 
       - name: Upload preview artifact
         uses: actions/upload-artifact@v7
@@ -57,7 +180,7 @@ jobs:
     if: >-
       github.event.action != 'closed' &&
       github.event.pull_request.head.repo.full_name == github.repository
-    needs: verify
+    needs: build_preview
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -72,7 +195,7 @@ jobs:
       - name: Publish preview to gh-pages
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PREVIEW_DIR: previews/pr-${{ github.event.pull_request.number }}
+          PREVIEW_DIR: pr-${{ github.event.pull_request.number }}
           REPO_URL: https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
         run: |
           set -euo pipefail
@@ -115,7 +238,7 @@ jobs:
       - name: Comment preview URL
         uses: actions/github-script@v8
         env:
-          PREVIEW_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/previews/pr-${{ github.event.pull_request.number }}/
+          PREVIEW_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/pr-${{ github.event.pull_request.number }}/
         with:
           script: |
             const marker = '<!-- pr-preview-url -->';
@@ -157,7 +280,7 @@ jobs:
       - name: Remove preview from gh-pages
         env:
           REPO_URL: https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
-          PREVIEW_DIR: previews/pr-${{ github.event.pull_request.number }}
+          PREVIEW_DIR: pr-${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
 

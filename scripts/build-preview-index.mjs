@@ -25,7 +25,7 @@ const openPRSection = openPRs.length
           `  <li><a class="pr-link" href="/${repoName}/preview/pr-${pr.number}/">PR #${pr.number}: ${escapeHtml(pr.title)}</a></li>`
       )
       .join("\n")}\n</ul>`
-  : "<p>No open pull requests.</p>";
+  : "<p>No open pull requests</p>";
 
 const template = readFileSync(templatePath, "utf8");
 const html = template

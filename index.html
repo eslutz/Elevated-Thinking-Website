@@ -19,8 +19,9 @@
         min-height: 100vh;
         background: #f7f8fa;
         color: #111827;
-        display: grid;
-        place-items: center;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
         padding: 2rem 1rem;
       }
 
@@ -66,9 +67,9 @@
       }
 
       ul {
-        list-style: none;
+        list-style: disc;
         margin: 0;
-        padding: 0;
+        padding-left: 1.25rem;
       }
 
       li {
@@ -97,7 +98,7 @@
   <body>
     <main class="page">
       <h1>Preview Deployments</h1>
-      <p><a href="/Elevated-Thinking-Website/preview/">Main branch preview</a></p>
+      <p><a href="/Elevated-Thinking-Website/preview/">Latest main preview</a></p>
       <h2>Open pull request previews</h2>
       <ul>
   <li><a class="pr-link" href="/Elevated-Thinking-Website/preview/pr-9/">PR #9: Generate preview index via reusable Node script and template</a></li>

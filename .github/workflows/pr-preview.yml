@@ -264,45 +264,7 @@ jobs:
           REPO_NAME="${GITHUB_REPOSITORY#*/}"
           export OPEN_PRS_JSON REPO_NAME
 
-          node <<'EOF'
-          const fs = require('node:fs');
-
-          const escapeHtml = (value) =>
-            String(value)
-              .replaceAll('&', '&amp;')
-              .replaceAll('<', '&lt;')
-              .replaceAll('>', '&gt;')
-              .replaceAll('"', '&quot;')
-              .replaceAll("'", '&#39;');
-
-          const repoName = process.env.REPO_NAME;
-          const openPRs = JSON.parse(process.env.OPEN_PRS_JSON);
-          const listItems = openPRs
-            .map(
-              (pr) =>
-                `<li><a href="/${repoName}/preview/pr-${pr.number}/">PR #${pr.number}: ${escapeHtml(pr.title)}</a></li>`,
-            )
-            .join('\n');
-
-          const html = `<!doctype html>
-          <html lang="en">
-            <head>
-              <meta charset="UTF-8" />
-              <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-              <title>Preview Deployments</title>
-            </head>
-            <body>
-              <main>
-                <h1>Preview Deployments</h1>
-                <p><a href="/${repoName}/preview/">Main branch preview</a></p>
-                <h2>Open pull request previews</h2>
-                ${listItems ? `<ul>${listItems}</ul>` : '<p>No open pull requests.</p>'}
-              </main>
-            </body>
-          </html>`;
-
-          fs.writeFileSync('gh-pages/index.html', html);
-          EOF
+          node scripts/build-preview-index.mjs gh-pages/index.html
 
           (
             cd gh-pages
@@ -400,45 +362,7 @@ jobs:
           REPO_NAME="${GITHUB_REPOSITORY#*/}"
           export OPEN_PRS_JSON REPO_NAME
 
-          node <<'EOF'
-          const fs = require('node:fs');
-
-          const escapeHtml = (value) =>
-            String(value)
-              .replaceAll('&', '&amp;')
-              .replaceAll('<', '&lt;')
-              .replaceAll('>', '&gt;')
-              .replaceAll('"', '&quot;')
-              .replaceAll("'", '&#39;');
-
-          const repoName = process.env.REPO_NAME;
-          const openPRs = JSON.parse(process.env.OPEN_PRS_JSON);
-          const listItems = openPRs
-            .map(
-              (pr) =>
-                `<li><a href="/${repoName}/preview/pr-${pr.number}/">PR #${pr.number}: ${escapeHtml(pr.title)}</a></li>`,
-            )
-            .join('\n');
-
-          const html = `<!doctype html>
-          <html lang="en">
-            <head>
-              <meta charset="UTF-8" />
-              <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-              <title>Preview Deployments</title>
-            </head>
-            <body>
-              <main>
-                <h1>Preview Deployments</h1>
-                <p><a href="/${repoName}/preview/">Main branch preview</a></p>
-                <h2>Open pull request previews</h2>
-                ${listItems ? `<ul>${listItems}</ul>` : '<p>No open pull requests.</p>'}
-              </main>
-            </body>
-          </html>`;
-
-          fs.writeFileSync('gh-pages/index.html', html);
-          EOF
+          node scripts/build-preview-index.mjs gh-pages/index.html
 
           (
             cd gh-pages
@@ -483,45 +407,7 @@ jobs:
           REPO_NAME="${GITHUB_REPOSITORY#*/}"
           export OPEN_PRS_JSON REPO_NAME
 
-          node <<'EOF'
-          const fs = require('node:fs');
-
-          const escapeHtml = (value) =>
-            String(value)
-              .replaceAll('&', '&amp;')
-              .replaceAll('<', '&lt;')
-              .replaceAll('>', '&gt;')
-              .replaceAll('"', '&quot;')
-              .replaceAll("'", '&#39;');
-
-          const repoName = process.env.REPO_NAME;
-          const openPRs = JSON.parse(process.env.OPEN_PRS_JSON);
-          const listItems = openPRs
-            .map(
-              (pr) =>
-                `<li><a href="/${repoName}/preview/pr-${pr.number}/">PR #${pr.number}: ${escapeHtml(pr.title)}</a></li>`,
-            )
-            .join('\n');
-
-          const html = `<!doctype html>
-          <html lang="en">
-            <head>
-              <meta charset="UTF-8" />
-              <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-              <title>Preview Deployments</title>
-            </head>
-            <body>
-              <main>
-                <h1>Preview Deployments</h1>
-                <p><a href="/${repoName}/preview/">Main branch preview</a></p>
-                <h2>Open pull request previews</h2>
-                ${listItems ? `<ul>${listItems}</ul>` : '<p>No open pull requests.</p>'}
-              </main>
-            </body>
-          </html>`;
-
-          fs.writeFileSync('gh-pages/index.html', html);
-          EOF
+          node scripts/build-preview-index.mjs gh-pages/index.html
 
           (
             cd gh-pages

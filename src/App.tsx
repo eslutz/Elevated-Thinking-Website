@@ -30,7 +30,7 @@ export default function ElevatedOnePageSite() {
     >
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:rounded-md focus:bg-[var(--color-primary)] focus:px-4 focus:py-2 focus:text-white"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-[var(--color-primary)] focus:px-4 focus:py-2 focus:text-white"
       >
         Skip to main content
       </a>
@@ -80,8 +80,11 @@ export default function ElevatedOnePageSite() {
             </a>
           </div>
 
-          <div className="relative" aria-hidden="true">
-            <div className="aspect-4/5 rounded-3xl bg-[var(--color-surface-muted)]" />
+          <div className="relative">
+            <div
+              className="aspect-4/5 rounded-3xl bg-[var(--color-surface-muted)]"
+              aria-hidden="true"
+            />
             <div className="absolute -bottom-6 -left-6 w-64 rounded-2xl bg-[var(--color-accent)] p-6 text-white shadow-xl">
               <p className="text-lg leading-6">AI-enabled. Not AI-obsessed.</p>
             </div>

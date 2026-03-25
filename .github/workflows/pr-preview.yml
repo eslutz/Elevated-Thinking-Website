@@ -254,24 +254,34 @@ jobs:
               git remote add origin "$REPO_URL"
               git push origin gh-pages
             )
-            git clone --depth 1 --branch gh-pages "$REPO_URL" gh-pages
           fi
 
           mkdir -p "gh-pages/$PREVIEW_DIR"
           rsync -a --delete dist/ "gh-pages/$PREVIEW_DIR/"
           touch gh-pages/.nojekyll
 
-          OPEN_PRS_JSON="$(curl -sSf -H \"Authorization: Bearer $GITHUB_TOKEN\" -H \"Accept: application/vnd.github+json\" \"https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls?state=open&per_page=100\")"
+          OPEN_PRS_JSON="$(curl -sSf -H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls?state=open&per_page=100")"
           REPO_NAME="${GITHUB_REPOSITORY#*/}"
           export OPEN_PRS_JSON REPO_NAME
 
           node <<'EOF'
           const fs = require('node:fs');
 
+          const escapeHtml = (value) =>
+            String(value)
+              .replaceAll('&', '&amp;')
+              .replaceAll('<', '&lt;')
+              .replaceAll('>', '&gt;')
+              .replaceAll('"', '&quot;')
+              .replaceAll("'", '&#39;');
+
           const repoName = process.env.REPO_NAME;
           const openPRs = JSON.parse(process.env.OPEN_PRS_JSON);
           const listItems = openPRs
-            .map((pr) => `<li><a href="/${repoName}/preview/pr-${pr.number}/">PR #${pr.number}: ${pr.title}</a></li>`)
+            .map(
+              (pr) =>
+                `<li><a href="/${repoName}/preview/pr-${pr.number}/">PR #${pr.number}: ${escapeHtml(pr.title)}</a></li>`,
+            )
             .join('\n');
 
           const html = `<!doctype html>
@@ -380,24 +390,34 @@ jobs:
               git remote add origin "$REPO_URL"
               git push origin gh-pages
             )
-            git clone --depth 1 --branch gh-pages "$REPO_URL" gh-pages
           fi
 
           mkdir -p "gh-pages/$PREVIEW_DIR"
           rsync -a --delete dist/ "gh-pages/$PREVIEW_DIR/"
           touch gh-pages/.nojekyll
 
-          OPEN_PRS_JSON="$(curl -sSf -H \"Authorization: Bearer $GITHUB_TOKEN\" -H \"Accept: application/vnd.github+json\" \"https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls?state=open&per_page=100\")"
+          OPEN_PRS_JSON="$(curl -sSf -H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls?state=open&per_page=100")"
           REPO_NAME="${GITHUB_REPOSITORY#*/}"
           export OPEN_PRS_JSON REPO_NAME
 
           node <<'EOF'
           const fs = require('node:fs');
 
+          const escapeHtml = (value) =>
+            String(value)
+              .replaceAll('&', '&amp;')
+              .replaceAll('<', '&lt;')
+              .replaceAll('>', '&gt;')
+              .replaceAll('"', '&quot;')
+              .replaceAll("'", '&#39;');
+
           const repoName = process.env.REPO_NAME;
           const openPRs = JSON.parse(process.env.OPEN_PRS_JSON);
           const listItems = openPRs
-            .map((pr) => `<li><a href="/${repoName}/preview/pr-${pr.number}/">PR #${pr.number}: ${pr.title}</a></li>`)
+            .map(
+              (pr) =>
+                `<li><a href="/${repoName}/preview/pr-${pr.number}/">PR #${pr.number}: ${escapeHtml(pr.title)}</a></li>`,
+            )
             .join('\n');
 
           const html = `<!doctype html>
@@ -459,17 +479,28 @@ jobs:
           rm -rf "gh-pages/$PREVIEW_DIR"
           touch gh-pages/.nojekyll
 
-          OPEN_PRS_JSON="$(curl -sSf -H \"Authorization: Bearer $GITHUB_TOKEN\" -H \"Accept: application/vnd.github+json\" \"https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls?state=open&per_page=100\")"
+          OPEN_PRS_JSON="$(curl -sSf -H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls?state=open&per_page=100")"
           REPO_NAME="${GITHUB_REPOSITORY#*/}"
           export OPEN_PRS_JSON REPO_NAME
 
           node <<'EOF'
           const fs = require('node:fs');
 
+          const escapeHtml = (value) =>
+            String(value)
+              .replaceAll('&', '&amp;')
+              .replaceAll('<', '&lt;')
+              .replaceAll('>', '&gt;')
+              .replaceAll('"', '&quot;')
+              .replaceAll("'", '&#39;');
+
           const repoName = process.env.REPO_NAME;
           const openPRs = JSON.parse(process.env.OPEN_PRS_JSON);
           const listItems = openPRs
-            .map((pr) => `<li><a href="/${repoName}/preview/pr-${pr.number}/">PR #${pr.number}: ${pr.title}</a></li>`)
+            .map(
+              (pr) =>
+                `<li><a href="/${repoName}/preview/pr-${pr.number}/">PR #${pr.number}: ${escapeHtml(pr.title)}</a></li>`,
+            )
             .join('\n');
 
           const html = `<!doctype html>

@@ -64,7 +64,7 @@ jobs:
         run: npm run typecheck
 
       - name: Run unit tests
-        run: npm run test:unit
+        run: npm run test:unit -- --coverage
 
       - name: Install Playwright browser dependencies
         run: npx playwright install --with-deps chromium
@@ -120,7 +120,9 @@ jobs:
           set -euo pipefail
 
           HOSTINGER_PORT="${HOSTINGER_PORT:-22}"
-          HOSTINGER_REMOTE_PATH="${HOSTINGER_REMOTE_PATH%/}"
+          if [ "$HOSTINGER_REMOTE_PATH" != "/" ]; then
+            HOSTINGER_REMOTE_PATH="${HOSTINGER_REMOTE_PATH%/}"
+          fi
           SLOTS_ROOT="$HOSTINGER_REMOTE_PATH/.deploy-slots"
           ACTIVE_SLOT_FILE=".active-slot"
 
@@ -240,7 +242,9 @@ jobs:
           set -euo pipefail
 
           HOSTINGER_PORT="${HOSTINGER_PORT:-22}"
-          HOSTINGER_REMOTE_PATH="${HOSTINGER_REMOTE_PATH%/}"
+          if [ "$HOSTINGER_REMOTE_PATH" != "/" ]; then
+            HOSTINGER_REMOTE_PATH="${HOSTINGER_REMOTE_PATH%/}"
+          fi
           SLOTS_ROOT="$HOSTINGER_REMOTE_PATH/.deploy-slots"
           ACTIVE_SLOT_FILE=".active-slot"
 

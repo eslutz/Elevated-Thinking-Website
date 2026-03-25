@@ -149,7 +149,7 @@ export default function ElevatedOnePageSite() {
                 Bring us in when the problem spans teams, systems, or
                 consequences.
               </h2>
-              <p className="mt-4 text-[var(--color-primary)]/90">
+              <p className="mt-4 text-[var(--color-primary)]">
                 Especially early, before decisions calcify into expensive
                 problems.
               </p>

@@ -176,7 +176,7 @@ jobs:
           mkdir -p "$SLOTS_ROOT/blue"
           mkdir -p "$SLOTS_ROOT/green"
           mirror --reverse --delete --verbose dist "$SLOTS_ROOT/$target_slot"
-          mirror --reverse --delete --verbose --exclude-glob .deploy-slots dist "$HOSTINGER_REMOTE_PATH"
+          mirror --reverse --delete --verbose --exclude-glob .deploy-slots/ dist "$HOSTINGER_REMOTE_PATH"
           put -O "$SLOTS_ROOT" "$tmp_dir/$ACTIVE_SLOT_FILE"
           bye
           EOF_LFTP
@@ -318,7 +318,7 @@ jobs:
           set net:max-retries 2
           set net:reconnect-interval-base 5
           set net:timeout 20
-          mirror --reverse --delete --verbose --exclude-glob .deploy-slots "$rollback_dist" "$HOSTINGER_REMOTE_PATH"
+          mirror --reverse --delete --verbose --exclude-glob .deploy-slots/ "$rollback_dist" "$HOSTINGER_REMOTE_PATH"
           put -O "$SLOTS_ROOT" "$tmp_dir/$ACTIVE_SLOT_FILE"
           bye
           EOF_LFTP

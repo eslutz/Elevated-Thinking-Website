@@ -1,4 +1,4 @@
-name: PR Preview
+name: Preview Deployments
 
 on:
   pull_request:
@@ -7,17 +7,24 @@ on:
       - reopened
       - synchronize
       - closed
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - ".github/**"
 
 permissions:
   contents: read
 
 concurrency:
-  group: pr-preview-${{ github.event.pull_request.number }}
+  group: preview-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
   validate:
-    if: github.event.action != 'closed'
+    if: github.event_name == 'pull_request' && github.event.action != 'closed'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -43,7 +50,7 @@ jobs:
         run: npm run typecheck
 
   unit_tests:
-    if: github.event.action != 'closed'
+    if: github.event_name == 'pull_request' && github.event.action != 'closed'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -108,7 +115,7 @@ jobs:
           EOF
 
   smoke_tests:
-    if: github.event.action != 'closed'
+    if: github.event_name == 'pull_request' && github.event.action != 'closed'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -141,8 +148,8 @@ jobs:
           path: playwright-report/
           if-no-files-found: ignore
 
-  build_preview:
-    if: github.event.action != 'closed'
+  build_pr_preview:
+    if: github.event_name == 'pull_request' && github.event.action != 'closed'
     needs:
       - validate
       - unit_tests
@@ -167,35 +174,66 @@ jobs:
 
       - name: Build PR preview bundle
         run: >-
-          npm run build -- --base=/${{ github.event.repository.name }}/pr-${{ github.event.pull_request.number }}/
+          npm run build -- --base=/${{ github.event.repository.name }}/preview/pr-${{ github.event.pull_request.number }}/
 
-      - name: Upload preview artifact
+      - name: Upload PR preview artifact
         uses: actions/upload-artifact@v7
         with:
           name: pr-preview-dist
           path: dist
           if-no-files-found: error
 
-  deploy_preview:
+  build_main_preview:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build main preview bundle
+        run: npm run build -- --base=/${{ github.event.repository.name }}/preview/
+
+      - name: Upload main preview artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: main-preview-dist
+          path: dist
+          if-no-files-found: error
+
+  deploy_pr_preview:
     if: >-
+      github.event_name == 'pull_request' &&
       github.event.action != 'closed' &&
       github.event.pull_request.head.repo.full_name == github.repository
-    needs: build_preview
+    needs: build_pr_preview
     runs-on: ubuntu-latest
     permissions:
       contents: write
       pull-requests: write
     steps:
-      - name: Download preview artifact
+      - name: Download PR preview artifact
         uses: actions/download-artifact@v8
         with:
           name: pr-preview-dist
           path: dist
 
-      - name: Publish preview to gh-pages
+      - name: Publish PR preview and index to gh-pages
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PREVIEW_DIR: pr-${{ github.event.pull_request.number }}
+          PREVIEW_DIR: preview/pr-${{ github.event.pull_request.number }}
           REPO_URL: https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
         run: |
           set -euo pipefail
@@ -222,6 +260,50 @@ jobs:
           rsync -a --delete dist/ "gh-pages/$PREVIEW_DIR/"
           touch gh-pages/.nojekyll
 
+          OPEN_PRS_JSON="$(curl -sSf -H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls?state=open&per_page=100")"
+          REPO_NAME="${GITHUB_REPOSITORY#*/}"
+          export OPEN_PRS_JSON REPO_NAME
+
+          node <<'EOF'
+          const fs = require('node:fs');
+
+          const escapeHtml = (value) =>
+            String(value)
+              .replaceAll('&', '&amp;')
+              .replaceAll('<', '&lt;')
+              .replaceAll('>', '&gt;')
+              .replaceAll('"', '&quot;')
+              .replaceAll("'", '&#39;');
+
+          const repoName = process.env.REPO_NAME;
+          const openPRs = JSON.parse(process.env.OPEN_PRS_JSON);
+          const listItems = openPRs
+            .map(
+              (pr) =>
+                `<li><a href="/${repoName}/preview/pr-${pr.number}/">PR #${pr.number}: ${escapeHtml(pr.title)}</a></li>`,
+            )
+            .join('\n');
+
+          const html = `<!doctype html>
+          <html lang="en">
+            <head>
+              <meta charset="UTF-8" />
+              <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+              <title>Preview Deployments</title>
+            </head>
+            <body>
+              <main>
+                <h1>Preview Deployments</h1>
+                <p><a href="/${repoName}/preview/">Main branch preview</a></p>
+                <h2>Open pull request previews</h2>
+                ${listItems ? `<ul>${listItems}</ul>` : '<p>No open pull requests.</p>'}
+              </main>
+            </body>
+          </html>`;
+
+          fs.writeFileSync('gh-pages/index.html', html);
+          EOF
+
           (
             cd gh-pages
             git add -A .
@@ -238,7 +320,7 @@ jobs:
       - name: Comment preview URL
         uses: actions/github-script@v8
         env:
-          PREVIEW_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/pr-${{ github.event.pull_request.number }}/
+          PREVIEW_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/preview/pr-${{ github.event.pull_request.number }}/
         with:
           script: |
             const marker = '<!-- pr-preview-url -->';
@@ -271,16 +353,117 @@ jobs:
               body,
             });
 
-  cleanup_preview:
-    if: github.event.action == 'closed'
+  deploy_main_preview:
+    if: github.event_name == 'push'
+    needs: build_main_preview
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - name: Remove preview from gh-pages
+      - name: Download main preview artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: main-preview-dist
+          path: dist
+
+      - name: Publish main preview and index to gh-pages
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PREVIEW_DIR: preview
           REPO_URL: https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
-          PREVIEW_DIR: pr-${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if git ls-remote --exit-code --heads "$REPO_URL" gh-pages >/dev/null 2>&1; then
+            git clone --depth 1 --branch gh-pages "$REPO_URL" gh-pages
+          else
+            git init gh-pages
+            (
+              cd gh-pages
+              git checkout --orphan gh-pages
+              touch .nojekyll
+              git add .nojekyll
+              git commit -m "Initialize GitHub Pages branch"
+              git remote add origin "$REPO_URL"
+              git push origin gh-pages
+            )
+          fi
+
+          mkdir -p "gh-pages/$PREVIEW_DIR"
+          rsync -a --delete dist/ "gh-pages/$PREVIEW_DIR/"
+          touch gh-pages/.nojekyll
+
+          OPEN_PRS_JSON="$(curl -sSf -H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls?state=open&per_page=100")"
+          REPO_NAME="${GITHUB_REPOSITORY#*/}"
+          export OPEN_PRS_JSON REPO_NAME
+
+          node <<'EOF'
+          const fs = require('node:fs');
+
+          const escapeHtml = (value) =>
+            String(value)
+              .replaceAll('&', '&amp;')
+              .replaceAll('<', '&lt;')
+              .replaceAll('>', '&gt;')
+              .replaceAll('"', '&quot;')
+              .replaceAll("'", '&#39;');
+
+          const repoName = process.env.REPO_NAME;
+          const openPRs = JSON.parse(process.env.OPEN_PRS_JSON);
+          const listItems = openPRs
+            .map(
+              (pr) =>
+                `<li><a href="/${repoName}/preview/pr-${pr.number}/">PR #${pr.number}: ${escapeHtml(pr.title)}</a></li>`,
+            )
+            .join('\n');
+
+          const html = `<!doctype html>
+          <html lang="en">
+            <head>
+              <meta charset="UTF-8" />
+              <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+              <title>Preview Deployments</title>
+            </head>
+            <body>
+              <main>
+                <h1>Preview Deployments</h1>
+                <p><a href="/${repoName}/preview/">Main branch preview</a></p>
+                <h2>Open pull request previews</h2>
+                ${listItems ? `<ul>${listItems}</ul>` : '<p>No open pull requests.</p>'}
+              </main>
+            </body>
+          </html>`;
+
+          fs.writeFileSync('gh-pages/index.html', html);
+          EOF
+
+          (
+            cd gh-pages
+            git add -A .
+
+            if git diff --cached --quiet; then
+              echo "No preview changes to publish."
+              exit 0
+            fi
+
+            git commit -m "Deploy main preview from ${GITHUB_SHA}"
+            git push origin gh-pages
+          )
+
+  cleanup_preview:
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Remove preview from gh-pages and refresh index
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO_URL: https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+          PREVIEW_DIR: preview/pr-${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
 
@@ -294,6 +477,51 @@ jobs:
 
           git clone --depth 1 --branch gh-pages "$REPO_URL" gh-pages
           rm -rf "gh-pages/$PREVIEW_DIR"
+          touch gh-pages/.nojekyll
+
+          OPEN_PRS_JSON="$(curl -sSf -H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls?state=open&per_page=100")"
+          REPO_NAME="${GITHUB_REPOSITORY#*/}"
+          export OPEN_PRS_JSON REPO_NAME
+
+          node <<'EOF'
+          const fs = require('node:fs');
+
+          const escapeHtml = (value) =>
+            String(value)
+              .replaceAll('&', '&amp;')
+              .replaceAll('<', '&lt;')
+              .replaceAll('>', '&gt;')
+              .replaceAll('"', '&quot;')
+              .replaceAll("'", '&#39;');
+
+          const repoName = process.env.REPO_NAME;
+          const openPRs = JSON.parse(process.env.OPEN_PRS_JSON);
+          const listItems = openPRs
+            .map(
+              (pr) =>
+                `<li><a href="/${repoName}/preview/pr-${pr.number}/">PR #${pr.number}: ${escapeHtml(pr.title)}</a></li>`,
+            )
+            .join('\n');
+
+          const html = `<!doctype html>
+          <html lang="en">
+            <head>
+              <meta charset="UTF-8" />
+              <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+              <title>Preview Deployments</title>
+            </head>
+            <body>
+              <main>
+                <h1>Preview Deployments</h1>
+                <p><a href="/${repoName}/preview/">Main branch preview</a></p>
+                <h2>Open pull request previews</h2>
+                ${listItems ? `<ul>${listItems}</ul>` : '<p>No open pull requests.</p>'}
+              </main>
+            </body>
+          </html>`;
+
+          fs.writeFileSync('gh-pages/index.html', html);
+          EOF
 
           (
             cd gh-pages

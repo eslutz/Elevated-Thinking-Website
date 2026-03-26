@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: preview-cleanup-${{ github.event.pull_request.number }}
+  group: preview-pr-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:

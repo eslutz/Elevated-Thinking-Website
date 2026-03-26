@@ -1,0 +1,71 @@
+name: Preview Cleanup
+
+on:
+  pull_request:
+    types:
+      - closed
+
+permissions:
+  contents: read
+
+concurrency:
+  group: preview-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  cleanup_preview:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Remove preview from gh-pages and refresh index
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO_URL: https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+          PREVIEW_DIR: preview/pr-${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if ! git ls-remote --exit-code --heads "$REPO_URL" gh-pages >/dev/null 2>&1; then
+            echo "gh-pages branch does not exist. Nothing to clean up."
+            exit 0
+          fi
+
+          git clone --depth 1 --branch gh-pages "$REPO_URL" gh-pages
+          rm -rf "gh-pages/$PREVIEW_DIR"
+          touch gh-pages/.nojekyll
+
+          OPEN_PRS_JSON="$(curl -sSf -H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls?state=open&per_page=100")"
+          REPO_NAME="${GITHUB_REPOSITORY#*/}"
+          REPO_OWNER="${GITHUB_REPOSITORY%%/*}"
+
+          if [ "$REPO_NAME" = "$REPO_OWNER.github.io" ]; then
+            SITE_PREFIX=""
+          else
+            SITE_PREFIX="/$REPO_NAME"
+          fi
+
+          export OPEN_PRS_JSON REPO_NAME SITE_PREFIX
+
+          node scripts/build-preview-index.mjs gh-pages/index.html
+
+          (
+            cd gh-pages
+            git add -A .
+
+            if git diff --cached --quiet; then
+              echo "Preview directory already absent."
+              exit 0
+            fi
+
+            git commit -m "Remove preview for PR #${{ github.event.pull_request.number }}"
+            git push origin gh-pages
+          )

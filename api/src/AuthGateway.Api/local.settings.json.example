@@ -1,0 +1,26 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated"
+  },
+  "GitHubOAuth": {
+    "ClientId": "<github-oauth-client-id>",
+    "ClientSecret": "<github-oauth-client-secret>",
+    "CallbackUrl": "http://localhost:7071/api/auth/callback"
+  },
+  "RepositoryAccess": {
+    "Owner": "<github-owner>",
+    "Name": "<github-repo>"
+  },
+  "Session": {
+    "SigningKey": "<long-random-signing-key>",
+    "ExpirationMinutes": 120,
+    "CookieName": "preview_auth"
+  },
+  "PreviewRouting": {
+    "RootUrl": "https://<your-domain>/",
+    "MainPreviewUrl": "https://<your-domain>/preview/",
+    "PrPreviewBaseUrl": "https://<your-domain>/preview"
+  }
+}

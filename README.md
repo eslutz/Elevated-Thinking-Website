@@ -279,3 +279,51 @@ Dependabot is also configured in `.github/dependabot.yml` to keep GitHub Actions
 - `src/App.tsx` - main page component
 - `src/main.tsx` - React entry point
 - `src/styles.css` - global styles and Tailwind import
+
+## Preview Authentication Gateway (Azure Functions + GitHub OAuth)
+
+This repository now includes a separate C# Azure Functions API project under `api/` that protects preview entrypoints behind GitHub OAuth and repository-collaborator checks.
+
+### API project
+
+- Solution: `api/AuthGateway.sln`
+- Function app project: `api/src/AuthGateway.Api`
+- Test project: `api/tests/AuthGateway.Api.Tests`
+
+The auth gateway provides these key routes:
+
+- `GET /api/auth/login`
+- `GET /api/auth/callback`
+- `POST /api/auth/logout`
+- `GET /api/auth/me`
+- `GET /api/view/root`
+- `GET /api/view/main`
+- `GET /api/view/pr/{prNumber}`
+
+If a user is not authenticated, the protected view routes redirect to GitHub OAuth. During callback, the API checks `GET /repos/{owner}/{repo}/collaborators/{username}` before issuing an auth cookie.
+
+### Infrastructure project (Bicep)
+
+- Template: `infra/bicep/main.bicep`
+- Example parameters: `infra/bicep/main.parameters.json`
+
+The template provisions:
+
+- Storage account (Functions runtime storage)
+- Application Insights
+- Linux Consumption plan
+- Function App with all required app settings for OAuth, repo access validation, session signing, and preview URL routing
+
+### Deployment workflows
+
+- API workflow: `.github/workflows/api-auth-gateway.yml`
+  - Validates restore/build/test for all API changes.
+  - Deploys the published Functions package on `main`.
+- Infra workflow: `.github/workflows/infra-auth-gateway.yml`
+  - Validates Bicep template changes.
+  - Deploys infrastructure on `main`.
+
+Required GitHub environment/repository secrets and vars include:
+
+- Secrets: `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`
+- Variables: `AZURE_RESOURCE_GROUP`, `AZURE_FUNCTION_APP_NAME`

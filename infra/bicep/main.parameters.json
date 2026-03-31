@@ -1,0 +1,36 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "namePrefix": {
+      "value": "etw-auth"
+    },
+    "repoOwner": {
+      "value": "<github-owner>"
+    },
+    "repoName": {
+      "value": "Elevated-Thinking-Website"
+    },
+    "githubClientId": {
+      "value": "<github-client-id>"
+    },
+    "githubClientSecret": {
+      "value": "<github-client-secret>"
+    },
+    "githubCallbackUrl": {
+      "value": "https://<function-app>.azurewebsites.net/api/auth/callback"
+    },
+    "sessionSigningKey": {
+      "value": "<random-signing-key>"
+    },
+    "protectedRootUrl": {
+      "value": "https://<owner>.github.io/<repo>/"
+    },
+    "protectedMainPreviewUrl": {
+      "value": "https://<owner>.github.io/<repo>/preview/"
+    },
+    "protectedPrPreviewBaseUrl": {
+      "value": "https://<owner>.github.io/<repo>/preview"
+    }
+  }
+}

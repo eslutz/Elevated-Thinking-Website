@@ -22,7 +22,7 @@
   "devDependencies": {
     "@axe-core/playwright": "^4.11.1",
     "@playwright/test": "^1.58.2",
-    "@swc/core": "^1.15.21",
+    "@swc/core": "^1.15.24",
     "@swc/jest": "^0.2.39",
     "@tailwindcss/vite": "^4.2.2",
     "@testing-library/jest-dom": "^6.9.1",

@@ -184,7 +184,7 @@ jobs:
           echo "Promotion complete. Active slot set to: $target_slot"
 
       - name: Create GitHub release for deployed tag
-        uses: actions/github-script@v8.0.0
+        uses: actions/github-script@v9
         env:
           RELEASE_TAG: ${{ github.ref_name }}
         with:

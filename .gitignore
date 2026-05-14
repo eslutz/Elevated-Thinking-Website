@@ -238,3 +238,10 @@ $RECYCLE.BIN/
 playwright-report/
 test-results/
 playwright/.cache/
+
+# .NET build outputs
+**/bin/
+**/obj/
+
+# Azure Functions local configuration
+api/src/AuthGateway.Api/local.settings.json

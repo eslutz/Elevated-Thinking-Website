@@ -4,7 +4,7 @@ This project is a static Vite + React + TypeScript site with Tailwind bundled th
 
 ## Requirements
 
-- Node.js 18+ recommended
+- Node.js 20+ recommended
 - npm
 
 ## Local Development
@@ -87,24 +87,21 @@ npm run preview
 
 ## CI/CD Overview
 
-GitHub Actions handles both preview and production deployments:
+GitHub Actions handles non-production previews and production deployments:
 
-- Pull requests run separate `validate`, `unit_tests`, and `smoke_tests` jobs before publishing a PR-specific build.
+- Pull requests run separate `validate`, `unit_tests`, and `smoke_tests` jobs before any preview deploy.
 - The `unit_tests` job enforces a minimum 60% global Jest coverage threshold.
 - The `validate` job isolates formatting and TypeScript failures from test failures.
 - The `smoke_tests` job uploads a Playwright HTML report artifact so the PR check links lead to inspectable test output.
-- Successful PR builds publish a preview to GitHub Pages at:
-
-  ```text
-  https://<owner>.github.io/<repo>/preview/pr-<number>/
-  ```
-
-- Closing or merging a PR removes its preview from the `gh-pages` branch.
+- Same-repository pull requests deploy to Azure Static Web Apps pre-production environments after checks pass.
+- Pull requests from forks run verification but do not deploy because they cannot access the preview deployment secret.
+- Pushes to `main` deploy the latest non-production review build to the Azure Static Web Apps production environment for the preview resource.
+- Closing or merging a same-repository pull request closes the matching Azure Static Web Apps pre-production environment.
 - Pushes of version tags like `v1.2.3` rerun verification, deploy with blue/green slots to Hostinger over SFTP, and create a GitHub release for that tag.
 
 The workflows live in:
 
-- `.github/workflows/pr-preview.yml`
+- `.github/workflows/non-prod-preview.yml`
 - `.github/workflows/deploy-production.yml`
 
 Detailed testing/deployment plan:
@@ -113,17 +110,7 @@ Detailed testing/deployment plan:
 
 ## GitHub Setup
 
-### 1. Enable GitHub Pages
-
-In the repository settings:
-
-1. Open `Settings -> Pages`.
-2. Set the source to `Deploy from a branch`.
-3. Choose the `gh-pages` branch and `/ (root)`.
-
-GitHub Pages will then serve the PR preview files written by the workflow.
-
-### 2. Configure Branch Protection For `main`
+### 1. Configure Branch Protection For `main`
 
 GitHub branch protection is a repository setting, not a tracked file in this repo. Configure it manually:
 
@@ -136,31 +123,111 @@ GitHub branch protection is a repository setting, not a tracked file in this rep
 
 This is what ensures release tags are only cut from reviewed code that has already landed on `main`.
 
-### 3. Configure GitHub Environments
+### 2. Configure GitHub Environments
 
-This setup uses one custom repository environment:
+This setup uses two custom repository environments:
 
+- `non-prod-preview`
 - `prod`
-
-GitHub Pages still creates and uses its own managed `github-pages` environment for Pages hosting. That is expected and should not be replaced.
-
-Recommended usage:
-
-- Use GitHub Pages for PR preview hosting.
-- Use `prod` for production deploys so Hostinger secrets and deployment approvals are isolated to production only.
 
 GitHub environments can enforce required reviewers, wait timers, deployment branch restrictions, and separate secrets and variables. GitHub documents these controls in its deployment environment docs and notes that jobs referencing an environment create deployment records with an optional `environment_url`. [GitHub docs](https://docs.github.com/en/actions/reference/environments) [GitHub docs](https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/using-environments-for-deployment?apiVersion=2022-11-28)
 
 Recommended configuration:
 
 1. Open `Settings -> Environments`.
-2. Create an environment named `prod`.
-3. On `prod`, optionally require reviewer approval before the deploy job runs.
-4. On `prod`, optionally restrict deployments to release tags.
-5. On `prod`, add the Hostinger secrets listed below.
-6. On `prod`, optionally add a variable named `PROD_SITE_URL` with the public production site URL so GitHub shows a clickable deployment URL for production.
+2. Create an environment named `non-prod-preview`.
+3. Add the Azure Static Web Apps deployment token secret listed below to `non-prod-preview`.
+4. Create or keep an environment named `prod`.
+5. On `prod`, optionally require reviewer approval before the deploy job runs.
+6. On `prod`, optionally restrict deployments to release tags.
+7. On `prod`, add the Hostinger secrets listed below.
+8. On `prod`, optionally add a variable named `PROD_SITE_URL` with the public production site URL so GitHub shows a clickable deployment URL for production.
 
-### 4. Add Hostinger Secrets
+### 3. Add Azure Static Web Apps Secret
+
+The non-production preview workflow deploys to this Azure Static Web Apps resource:
+
+- Resource group: `rg-elevated-thinking-preview`
+- Static Web App: `elevated-thinking-preview-swa`
+- SKU: Free
+
+Create or update the Azure resource:
+
+```bash
+az group create \
+  --name rg-elevated-thinking-preview \
+  --location eastus2
+
+az staticwebapp create \
+  --name elevated-thinking-preview-swa \
+  --resource-group rg-elevated-thinking-preview \
+  --location eastus2 \
+  --sku Free
+```
+
+Get the deployment token:
+
+```bash
+az staticwebapp secrets list \
+  --name elevated-thinking-preview-swa \
+  --resource-group rg-elevated-thinking-preview \
+  --query properties.apiKey \
+  --output tsv
+```
+
+Add that value as this exact secret on the `non-prod-preview` GitHub environment:
+
+- `AZURE_STATIC_WEB_APPS_API_TOKEN_NONPROD_PREVIEW`
+
+### 4. Add Preview Reviewers
+
+The preview site uses Azure Static Web Apps authentication. Users must sign in with GitHub and must have accepted an invitation for the custom `reviewer` role before they can view any route.
+
+Get the default hostname:
+
+```bash
+az staticwebapp show \
+  --name elevated-thinking-preview-swa \
+  --resource-group rg-elevated-thinking-preview \
+  --query defaultHostname \
+  --output tsv
+```
+
+Invite an approved GitHub user:
+
+```bash
+az staticwebapp users invite \
+  --name elevated-thinking-preview-swa \
+  --resource-group rg-elevated-thinking-preview \
+  --authentication-provider GitHub \
+  --user-details <github-login> \
+  --roles reviewer \
+  --domain <default-static-web-app-hostname> \
+  --invitation-expiration-in-hours 168
+```
+
+Uninvited users can authenticate with GitHub, but Azure Static Web Apps denies access because they do not have the `reviewer` role.
+
+### 5. Disable GitHub Pages
+
+GitHub Pages is no longer used for non-production previews. Disable it so the old `github.io` preview URLs stop serving:
+
+```bash
+gh api -X DELETE repos/eslutz/Elevated-Thinking-Website/pages
+```
+
+Then delete obsolete Pages branches:
+
+```bash
+git ls-remote --heads origin gh-pages gh_pages
+git push origin --delete gh-pages
+git push origin --delete gh_pages # only if the branch exists
+git fetch origin --prune
+```
+
+UI fallback: open `Settings -> Pages` and set the source to `None`.
+
+### 6. Add Hostinger Secrets
 
 Add these exact secret names in GitHub, preferably on the `prod` environment:
 
@@ -179,31 +246,17 @@ The production workflow deploy job reads them from the `prod` environment.
 
 ## Preview Deployment Details
 
-PR previews are built with a PR-specific Vite base path so asset URLs resolve correctly on GitHub Pages:
+The main non-production review site is the default hostname for `elevated-thinking-preview-swa`.
 
-```text
-/<repo>/preview/pr-<number>/
-```
+Same-repository pull requests get Azure Static Web Apps pre-production URLs. The workflow posts the generated URL to the pull request after deployment succeeds. Azure Static Web Apps keeps the same pre-production URL for the life of the pull request and removes that environment when the pull request closes.
 
-The workflow publishes the built files to:
+All preview routes are protected by `public/staticwebapp.config.json`:
 
-```text
-gh-pages/preview/pr-<number>/
-```
+- Unauthenticated users are redirected to `/.auth/login/github`.
+- Authenticated users without the `reviewer` role are denied.
+- Invited reviewers who accepted the invitation can view the site.
 
-Each preview job also posts or updates a PR comment with the live preview URL.
-
-Pushes to `main` also publish a non-production main-branch build at:
-
-```text
-https://<owner>.github.io/<repo>/preview/
-```
-
-The GitHub Pages root route (`https://<owner>.github.io/<repo>/`) is generated by the workflow and links to the main preview plus all currently open PR previews.
-
-If your team accepts PRs from forks, note that the current preview publish step only runs for PRs opened from branches in the same repository. The verification job still runs for forked PRs.
-
-GitHub Pages will show these deployments under its managed `github-pages` environment. There is no separate custom non-production environment in this simplified setup.
+The old GitHub Pages preview URLs are retired. GitHub Pages is disabled for this repository, and the old `gh-pages` branch is deleted.
 
 ## Production Deployment Details
 
@@ -247,17 +300,18 @@ assets/...
 - To retry a failed deployment, rerun the relevant workflow in the GitHub Actions tab.
 - To roll back production quickly, run `Production Deploy` manually with `operation=rollback` (and optionally `rollback_slot=blue|green`).
 - To ship a new production release, cut and push a new version tag with `npm version <patch|minor|major>` and `git push --follow-tags`.
-- To rebuild a preview, push a new commit to the PR branch or rerun the PR preview workflow.
+- To rebuild a preview, push a new commit to the PR branch or rerun the non-production preview workflow.
 
 ## Action Versioning
 
 The workflows are pinned to the current latest official tags that were available when this was updated:
 
-- `actions/checkout@v6.0.1`
-- `actions/setup-node@v6.1.0`
-- `actions/upload-artifact@v7.0.0`
+- `actions/checkout@v6.0.2`
+- `actions/setup-node@v6.4.0`
+- `actions/upload-artifact@v7.0.1`
 - `actions/download-artifact@v8.0.1`
-- `actions/github-script@v8.0.0`
+- `actions/github-script@v9.0.0`
+- `Azure/static-web-apps-deploy@v1`
 
 Those versions were verified from the official GitHub action release pages:
 
@@ -266,6 +320,7 @@ Those versions were verified from the official GitHub action release pages:
 - [actions/upload-artifact releases](https://github.com/actions/upload-artifact/releases)
 - [actions/download-artifact releases](https://github.com/actions/download-artifact/releases)
 - [actions/github-script releases](https://github.com/actions/github-script/releases)
+- [Azure/static-web-apps-deploy releases](https://github.com/Azure/static-web-apps-deploy/releases)
 
 Dependabot is also configured in `.github/dependabot.yml` to keep GitHub Actions and npm dependencies up to date automatically.
 
@@ -276,6 +331,7 @@ Dependabot is also configured in `.github/dependabot.yml` to keep GitHub Actions
 - `tsconfig.node.json` - TypeScript configuration for Vite config
 - `vite.config.ts` - Vite configuration
 - `index.html` - HTML shell used by Vite
+- `public/staticwebapp.config.json` - Azure Static Web Apps auth and routing rules for non-production previews
 - `src/App.tsx` - main page component
 - `src/main.tsx` - React entry point
 - `src/styles.css` - global styles and Tailwind import

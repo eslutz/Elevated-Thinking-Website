@@ -40,7 +40,7 @@
 
 ## Workflow Gates
 
-### Pull Request Preview (`.github/workflows/pr-preview.yml`)
+### Non-Production Preview (`.github/workflows/non-prod-preview.yml`)
 
 Required PR checks:
 
@@ -48,7 +48,7 @@ Required PR checks:
 2. `unit_tests`
 3. `smoke_tests`
 
-PR preview build flow:
+Preview build flow:
 
 1. `validate` runs `npm ci`
 2. `validate` runs `npm run format:check`
@@ -60,7 +60,19 @@ PR preview build flow:
 8. `smoke_tests` installs Playwright browser dependencies
 9. `smoke_tests` runs `npm run test:smoke`
 10. `smoke_tests` uploads the Playwright HTML report artifact
-11. `build_pr_preview` publishes the preview artifact after all required checks pass
+11. `deploy` builds the static site after all required checks pass
+12. `deploy` verifies `dist/staticwebapp.config.json` exists
+13. `deploy` uploads `dist/` to Azure Static Web Apps
+
+Main-branch pushes deploy to the `elevated-thinking-preview-swa` production environment for non-production review. Same-repository pull requests deploy to Azure Static Web Apps pre-production environments. Fork pull requests run verification but do not deploy because they cannot access the deployment token.
+
+Preview access checks:
+
+1. A private browser session that is not signed in should redirect to GitHub login.
+2. A GitHub user with an accepted `reviewer` role invitation should be able to view the preview site.
+3. A signed-in GitHub user without the `reviewer` role should be denied.
+4. Closing a same-repository pull request should close the matching Azure Static Web Apps pre-production environment.
+5. The old GitHub Pages URL should not serve previews after Pages is disabled and the `gh-pages` branch is deleted.
 
 ### Production (`.github/workflows/deploy-production.yml`)
 

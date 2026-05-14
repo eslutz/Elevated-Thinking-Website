@@ -79,6 +79,17 @@ This outputs the deployable static site to:
 dist/
 ```
 
+Create the Azure Static Web Apps non-production review build:
+
+```bash
+SWA_DEFAULT_HOSTNAME=delightful-plant-05da2520f.7.azurestaticapps.net \
+SWA_PREVIEW_REGION=eastus2 \
+GITHUB_REPOSITORY=eslutz/Elevated-Thinking-Website \
+npm run build:non-prod-preview
+```
+
+That build writes the review index to `dist/index.html` and the latest main preview app to `dist/preview/`.
+
 If you want to preview the production build locally:
 
 ```bash
@@ -95,7 +106,7 @@ GitHub Actions handles non-production previews and production deployments:
 - The `smoke_tests` job uploads a Playwright HTML report artifact so the PR check links lead to inspectable test output.
 - Same-repository pull requests deploy to Azure Static Web Apps pre-production environments after checks pass.
 - Pull requests from forks run verification but do not deploy because they cannot access the preview deployment secret.
-- Pushes to `main` deploy the latest non-production review build to the Azure Static Web Apps production environment for the preview resource.
+- Pushes to `main` deploy a protected preview index to the Azure Static Web Apps production environment and serve the latest main preview at `/preview/`.
 - Closing or merging a same-repository pull request closes the matching Azure Static Web Apps pre-production environment.
 - Pushes of version tags like `v1.2.3` rerun verification, deploy with blue/green slots to Hostinger over SFTP, and create a GitHub release for that tag.
 
@@ -246,9 +257,14 @@ The production workflow deploy job reads them from the `prod` environment.
 
 ## Preview Deployment Details
 
-The main non-production review site is the default hostname for `elevated-thinking-preview-swa`.
+The default hostname for `elevated-thinking-preview-swa` serves the non-production review index:
 
-Same-repository pull requests get Azure Static Web Apps pre-production URLs. The workflow posts the generated URL to the pull request after deployment succeeds. Azure Static Web Apps keeps the same pre-production URL for the life of the pull request and removes that environment when the pull request closes.
+- Root review index: `https://delightful-plant-05da2520f.7.azurestaticapps.net/`
+- Latest main preview: `https://delightful-plant-05da2520f.7.azurestaticapps.net/preview/`
+
+The root review index links to the latest main preview and to open pull request previews. It includes a build-time fallback list and refreshes the pull request list from the public GitHub API in the browser.
+
+Same-repository pull requests get Azure Static Web Apps pre-production URLs such as `https://delightful-plant-05da2520f-13.eastus2.7.azurestaticapps.net/`. The workflow posts the generated URL to the pull request after deployment succeeds. Azure Static Web Apps keeps the same pre-production URL for the life of the pull request and removes that environment when the pull request closes.
 
 All preview routes are protected by `public/staticwebapp.config.json`:
 

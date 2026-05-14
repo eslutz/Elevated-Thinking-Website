@@ -2,7 +2,7 @@
 export default {
   roots: ["<rootDir>/tests/unit"],
   testEnvironment: "jsdom",
-  moduleFileExtensions: ["ts", "tsx", "js", "jsx"],
+  moduleFileExtensions: ["ts", "tsx", "js", "jsx", "mjs"],
   setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
   collectCoverageFrom: [
     "<rootDir>/src/**/*.{ts,tsx}",
@@ -30,6 +30,16 @@ export default {
             react: {
               runtime: "automatic",
             },
+          },
+        },
+      },
+    ],
+    "^.+\\.mjs$": [
+      "@swc/jest",
+      {
+        jsc: {
+          parser: {
+            syntax: "ecmascript",
           },
         },
       },

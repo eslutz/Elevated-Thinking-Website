@@ -16,9 +16,10 @@
   - Component-level rendering checks
   - Content and structural assertions for key sections
   - Minimum 60% global coverage for statements, branches, functions, and lines
-- Location: `tests/unit/*.test.tsx`
+- Location: `tests/unit/*.test.ts` and `tests/unit/*.test.tsx`
 - Command:
-  - Local and CI: `npm run test:unit`
+  - Local: `npm run test:unit`
+  - CI: `npm run test:unit -- --coverage`
 
 ### Playwright UI Smoke Tests
 

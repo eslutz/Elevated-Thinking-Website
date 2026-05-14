@@ -1,266 +1,120 @@
 # Elevated Thinking Website
 
-This project is a static Vite + React + TypeScript site with Tailwind bundled through Vite.
+Static Vite + React + TypeScript site with Tailwind bundled through Vite.
 
 ## Requirements
 
-- Node.js 20+ recommended
+- Node.js 24 or newer recommended
 - npm
 
 ## Local Development
 
-Install dependencies:
+Install dependencies and start Vite:
 
 ```bash
 npm install
-```
-
-Start the local dev server:
-
-```bash
 npm run dev
 ```
 
-Vite will print a local URL, usually:
+Vite prints the local URL, usually `http://localhost:5173`.
 
-```text
-http://localhost:5173
-```
-
-Open that URL in your browser to preview the site.
-
-Check TypeScript types:
-
-```bash
-npm run typecheck
-```
-
-Check formatting:
+Useful local checks:
 
 ```bash
 npm run format:check
-```
-
-Format the source code:
-
-```bash
-npm run format
-```
-
-Run unit tests:
-
-```bash
+npm run typecheck
 npm run test:unit
-```
-
-Run UI smoke tests against the production preview server:
-
-```bash
 npm run test:smoke
 ```
 
-Formatting is enforced before commit with the committed Git hook in `.githooks/pre-commit`. `npm install` runs `prepare`, which configures Git to use that hooks directory for the repository.
+Use `npm run format` to apply Prettier formatting. Smoke tests use Playwright Chromium; if the browser runtime is missing locally, run:
 
-Smoke tests use Playwright's Chromium browser runtime in both local and CI environments (install with `npx playwright install --with-deps chromium` when needed).
-The smoke suite also includes an automated WCAG A/AA accessibility scan using `@axe-core/playwright`.
-GitHub Actions uploads the Playwright HTML report as an artifact for each smoke-test run.
+```bash
+npx playwright install --with-deps chromium
+```
 
-## Production Build
+Formatting is enforced before commit with `.githooks/pre-commit`. `npm install` runs `prepare`, which configures Git to use that hooks directory.
 
-Create the production build:
+### Preview The Production Build Locally
+
+This only builds and serves the production bundle on your machine. It does not deploy to production.
 
 ```bash
 npm run build
-```
-
-This outputs the deployable static site to:
-
-```text
-dist/
-```
-
-If you want to preview the production build locally:
-
-```bash
 npm run preview
 ```
 
+The production bundle is written to `dist/`.
+
 ## CI/CD Overview
 
-GitHub Actions handles non-production previews and production deployments:
+GitHub Actions runs separate validation, unit test, and smoke test jobs for pull requests, pushes to `main`, and production release tags.
 
-- Pull requests run separate `validate`, `unit_tests`, and `smoke_tests` jobs before any preview deploy.
-- The `unit_tests` job enforces a minimum 60% global Jest coverage threshold.
-- The `validate` job isolates formatting and TypeScript failures from test failures.
-- The `smoke_tests` job uploads a Playwright HTML report artifact so the PR check links lead to inspectable test output.
-- Same-repository pull requests deploy to Azure Static Web Apps pre-production environments after checks pass.
-- Pull requests from forks run verification but do not deploy because they cannot access the preview deployment secret.
-- Pushes to `main` deploy the latest non-production review build to the Azure Static Web Apps production environment for the preview resource.
-- Closing or merging a same-repository pull request closes the matching Azure Static Web Apps pre-production environment.
-- Pushes of version tags like `v1.2.3` rerun verification, deploy with blue/green slots to Hostinger over SFTP, and create a GitHub release for that tag.
+- `validate` runs formatting and TypeScript checks.
+- `unit_tests` runs Jest with coverage. The project enforces a 60% global coverage threshold.
+- `smoke_tests` builds the site, serves the production bundle locally, runs Playwright Chromium smoke tests, and includes the axe accessibility scan.
+- Same-repository pull requests deploy protected Azure Static Web Apps preview environments after checks pass.
+- Fork pull requests run checks but do not deploy because they cannot access deployment secrets.
+- Pushes to `main` publish the protected non-production review index and latest main preview.
+- Pushed release tags matching `v*` run production verification and deploy to Hostinger.
 
-The workflows live in:
+## GitHub Environments
 
-- `.github/workflows/non-prod-preview.yml`
-- `.github/workflows/deploy-production.yml`
+The repository uses two GitHub environments.
 
-Detailed testing/deployment plan:
+### `non-prod-preview`
 
-- `docs/test-plan.md`
+Used by the non-production preview workflow for the review index, latest main preview, pull request previews, and PR preview cleanup.
 
-## GitHub Setup
+Required secret:
 
-### 1. Configure Branch Protection For `main`
+| Name                                              | Used for                                                         | Value                                                                          |
+| ------------------------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `AZURE_STATIC_WEB_APPS_API_TOKEN_NONPROD_PREVIEW` | Deploying and closing Azure Static Web Apps preview environments | Deployment token from the `elevated-thinking-preview-swa` Azure Static Web App |
 
-GitHub branch protection is a repository setting, not a tracked file in this repo. Configure it manually:
-
-1. Open `Settings -> Branches`.
-2. Add a branch protection rule for `main`.
-3. Require at least one approval before merge.
-4. Require status checks to pass before merge.
-5. Select `validate`, `unit_tests`, and `smoke_tests` from the GitHub Actions workflows.
-6. Restrict direct pushes to `main`.
-
-This is what ensures release tags are only cut from reviewed code that has already landed on `main`.
-
-### 2. Configure GitHub Environments
-
-This setup uses two custom repository environments:
-
-- `non-prod-preview`
-- `prod`
-
-GitHub environments can enforce required reviewers, wait timers, deployment branch restrictions, and separate secrets and variables. GitHub documents these controls in its deployment environment docs and notes that jobs referencing an environment create deployment records with an optional `environment_url`. [GitHub docs](https://docs.github.com/en/actions/reference/environments) [GitHub docs](https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/using-environments-for-deployment?apiVersion=2022-11-28)
-
-Recommended configuration:
-
-1. Open `Settings -> Environments`.
-2. Create an environment named `non-prod-preview`.
-3. Add the Azure Static Web Apps deployment token secret listed below to `non-prod-preview`.
-4. Create or keep an environment named `prod`.
-5. On `prod`, optionally require reviewer approval before the deploy job runs.
-6. On `prod`, optionally restrict deployments to release tags.
-7. On `prod`, add the Hostinger secrets listed below.
-8. On `prod`, optionally add a variable named `PROD_SITE_URL` with the public production site URL so GitHub shows a clickable deployment URL for production.
-
-### 3. Add Azure Static Web Apps Secret
-
-The non-production preview workflow deploys to this Azure Static Web Apps resource:
+The Azure Static Web Apps resource is:
 
 - Resource group: `rg-elevated-thinking-preview`
 - Static Web App: `elevated-thinking-preview-swa`
-- SKU: Free
+- Region: `eastus2`
 
-Create or update the Azure resource:
+### `prod`
 
-```bash
-az group create \
-  --name rg-elevated-thinking-preview \
-  --location eastus2
+Used by the production deploy and rollback jobs. Configure required reviewers here if production releases or rollbacks should wait for manual approval before the workflow can access production secrets.
 
-az staticwebapp create \
-  --name elevated-thinking-preview-swa \
-  --resource-group rg-elevated-thinking-preview \
-  --location eastus2 \
-  --sku Free
-```
+Required secrets:
 
-Get the deployment token:
+| Name                    | Used for            | Recommended value       |
+| ----------------------- | ------------------- | ----------------------- |
+| `HOSTINGER_HOST`        | SFTP host           | Hostinger SFTP hostname |
+| `HOSTINGER_PORT`        | SFTP port           | `22`                    |
+| `HOSTINGER_USERNAME`    | SFTP username       | Hostinger SFTP username |
+| `HOSTINGER_PASSWORD`    | SFTP password       | Hostinger SFTP password |
+| `HOSTINGER_REMOTE_PATH` | Production web root | `public_html/`          |
 
-```bash
-az staticwebapp secrets list \
-  --name elevated-thinking-preview-swa \
-  --resource-group rg-elevated-thinking-preview \
-  --query properties.apiKey \
-  --output tsv
-```
+Optional variable:
 
-Add that value as this exact secret on the `non-prod-preview` GitHub environment:
+| Name            | Used for                                  | Value                      |
+| --------------- | ----------------------------------------- | -------------------------- |
+| `PROD_SITE_URL` | GitHub deployment URL for production jobs | Public production site URL |
 
-- `AZURE_STATIC_WEB_APPS_API_TOKEN_NONPROD_PREVIEW`
+`GITHUB_TOKEN` is provided automatically by GitHub Actions and does not need to be configured.
 
-### 4. Add Preview Reviewers
+## Preview Deployments
 
-The preview site uses Azure Static Web Apps authentication. Users must sign in with GitHub and must have accepted an invitation for the custom `reviewer` role before they can view any route.
+Preview sites are protected by Azure Static Web Apps authentication. Users sign in with GitHub and must have the `reviewer` role to access preview routes.
 
-Get the default hostname:
+- Review index: `https://delightful-plant-05da2520f.7.azurestaticapps.net/`
+- Latest main preview: `https://delightful-plant-05da2520f.7.azurestaticapps.net/preview/`
+- Pull request previews: posted back to the pull request after deployment succeeds
 
-```bash
-az staticwebapp show \
-  --name elevated-thinking-preview-swa \
-  --resource-group rg-elevated-thinking-preview \
-  --query defaultHostname \
-  --output tsv
-```
+The review index links to the latest main preview and open same-repository pull request previews. Azure keeps a pull request preview URL stable for the life of the PR and removes the environment when the PR closes.
 
-Invite an approved GitHub user:
+To request access, ask a project administrator to invite your GitHub account to the Azure Static Web Apps `reviewer` role for `elevated-thinking-preview-swa`. Uninvited users can authenticate but will be denied access.
 
-```bash
-az staticwebapp users invite \
-  --name elevated-thinking-preview-swa \
-  --resource-group rg-elevated-thinking-preview \
-  --authentication-provider GitHub \
-  --user-details <github-login> \
-  --roles reviewer \
-  --domain <default-static-web-app-hostname> \
-  --invitation-expiration-in-hours 168
-```
+## Production Deployment
 
-Uninvited users can authenticate with GitHub, but Azure Static Web Apps denies access because they do not have the `reviewer` role.
-
-### 5. Disable GitHub Pages
-
-GitHub Pages is no longer used for non-production previews. Disable it so the old `github.io` preview URLs stop serving:
-
-```bash
-gh api -X DELETE repos/eslutz/Elevated-Thinking-Website/pages
-```
-
-Then delete obsolete Pages branches:
-
-```bash
-git ls-remote --heads origin gh-pages gh_pages
-git push origin --delete gh-pages
-git push origin --delete gh_pages # only if the branch exists
-git fetch origin --prune
-```
-
-UI fallback: open `Settings -> Pages` and set the source to `None`.
-
-### 6. Add Hostinger Secrets
-
-Add these exact secret names in GitHub, preferably on the `prod` environment:
-
-- `HOSTINGER_HOST`
-- `HOSTINGER_PORT`
-- `HOSTINGER_USERNAME`
-- `HOSTINGER_PASSWORD`
-- `HOSTINGER_REMOTE_PATH`
-
-Recommended values:
-
-- `HOSTINGER_PORT`: `22`
-- `HOSTINGER_REMOTE_PATH`: `public_html/`
-
-The production workflow deploy job reads them from the `prod` environment.
-
-## Preview Deployment Details
-
-The main non-production review site is the default hostname for `elevated-thinking-preview-swa`.
-
-Same-repository pull requests get Azure Static Web Apps pre-production URLs. The workflow posts the generated URL to the pull request after deployment succeeds. Azure Static Web Apps keeps the same pre-production URL for the life of the pull request and removes that environment when the pull request closes.
-
-All preview routes are protected by `public/staticwebapp.config.json`:
-
-- Unauthenticated users are redirected to `/.auth/login/github`.
-- Authenticated users without the `reviewer` role are denied.
-- Invited reviewers who accepted the invitation can view the site.
-
-The old GitHub Pages preview URLs are retired. GitHub Pages is disabled for this repository, and the old `gh-pages` branch is deleted.
-
-## Production Deployment Details
-
-Production deploys run on pushes of release tags matching `v*`.
+Production deploys run when a release tag matching `v*` is pushed.
 
 Recommended release flow:
 
@@ -269,69 +123,24 @@ npm version patch
 git push --follow-tags
 ```
 
-Use `patch`, `minor`, or `major` as appropriate. The `npm version` command updates `package.json`, updates `package-lock.json`, creates a Git commit, and creates the matching Git tag. Pushing with `--follow-tags` sends both the release commit and the tag to GitHub, which triggers the production workflow.
+Use `patch`, `minor`, or `major` as appropriate. `npm version` updates `package.json` and `package-lock.json`, creates the release commit, and creates the matching tag. `git push --follow-tags` pushes the commit and tag, which starts the production workflow.
 
-The production workflow:
+The workflow verifies that the Git tag matches the package version, runs formatting, TypeScript, unit, and smoke checks, uploads the built `dist/` artifact, deploys it to the inactive Hostinger blue/green slot, promotes that same build to the live Hostinger web root, updates `.deploy-slots/.active-slot`, and creates the GitHub release.
 
-1. Runs `npm ci`
-2. Verifies the pushed Git tag matches the version in `package.json`
-3. Runs `npm run format:check`
-4. Runs `npm run typecheck`
-5. Runs `npm run test:unit`
-6. Runs Playwright smoke tests (`npm run test:smoke`)
-7. Uploads the `dist/` artifact
-8. Deploys to an inactive blue/green slot and then promotes the same release to the live Hostinger path
-9. Updates `.deploy-slots/.active-slot` so rollback target selection is deterministic
-10. Creates a GitHub release for the deployed version tag
+If the `prod` environment has required reviewers, the deployment pauses for approval before accessing Hostinger secrets.
 
-The production deploy job targets the `prod` environment. If you configure required reviewers on that environment, the deploy job will pause for approval before it can access the Hostinger secrets and proceed. GitHub documents this behavior in its environment and deployment docs. [GitHub docs](https://docs.github.com/en/actions/reference/environments) [GitHub docs](https://docs.github.com/actions/how-tos/deploy/configure-and-manage-deployments/control-deployments)
+## Production Retry And Rollback
 
-This site deploys as static files. You do not need a Node server on Hostinger for this setup.
+To retry a failed production deployment, open the failed `Production Deploy` run in GitHub Actions and choose **Re-run jobs**.
 
-After deployment, the Hostinger web root should contain files like:
+To roll back production:
 
-```text
-index.html
-assets/...
-```
+1. Open **Actions -> Production Deploy**.
+2. Choose **Run workflow**.
+3. Set `operation` to `rollback`.
+4. Leave `rollback_slot` empty for the workflow to automatically select the opposite of the current active slot.
+5. Run the workflow.
 
-## Rollback And Retry
+Production keeps two remote slots at `HOSTINGER_REMOTE_PATH/.deploy-slots/blue` and `HOSTINGER_REMOTE_PATH/.deploy-slots/green`. The active slot is stored in `HOSTINGER_REMOTE_PATH/.deploy-slots/.active-slot`. A normal deployment writes the new release to the inactive slot, promotes it live, and marks that slot active.
 
-- To retry a failed deployment, rerun the relevant workflow in the GitHub Actions tab.
-- To roll back production quickly, run `Production Deploy` manually with `operation=rollback` (and optionally `rollback_slot=blue|green`).
-- To ship a new production release, cut and push a new version tag with `npm version <patch|minor|major>` and `git push --follow-tags`.
-- To rebuild a preview, push a new commit to the PR branch or rerun the non-production preview workflow.
-
-## Action Versioning
-
-The workflows are pinned to the current latest official tags that were available when this was updated:
-
-- `actions/checkout@v6.0.2`
-- `actions/setup-node@v6.4.0`
-- `actions/upload-artifact@v7.0.1`
-- `actions/download-artifact@v8.0.1`
-- `actions/github-script@v9.0.0`
-- `Azure/static-web-apps-deploy@v1`
-
-Those versions were verified from the official GitHub action release pages:
-
-- [actions/checkout releases](https://github.com/actions/checkout/releases)
-- [actions/setup-node releases](https://github.com/actions/setup-node/releases)
-- [actions/upload-artifact releases](https://github.com/actions/upload-artifact/releases)
-- [actions/download-artifact releases](https://github.com/actions/download-artifact/releases)
-- [actions/github-script releases](https://github.com/actions/github-script/releases)
-- [Azure/static-web-apps-deploy releases](https://github.com/Azure/static-web-apps-deploy/releases)
-
-Dependabot is also configured in `.github/dependabot.yml` to keep GitHub Actions and npm dependencies up to date automatically.
-
-## Main Project Files
-
-- `package.json` - project dependencies and scripts
-- `tsconfig.json` - TypeScript configuration
-- `tsconfig.node.json` - TypeScript configuration for Vite config
-- `vite.config.ts` - Vite configuration
-- `index.html` - HTML shell used by Vite
-- `public/staticwebapp.config.json` - Azure Static Web Apps auth and routing rules for non-production previews
-- `src/App.tsx` - main page component
-- `src/main.tsx` - React entry point
-- `src/styles.css` - global styles and Tailwind import
+For rollback, leaving `rollback_slot` empty is usually correct: the workflow reads `.active-slot` and rolls back to the other slot. Only set `rollback_slot=blue` or `rollback_slot=green` when you intentionally need a specific slot, such as after confirming the desired target from a previous workflow log or from the remote `.active-slot` marker.

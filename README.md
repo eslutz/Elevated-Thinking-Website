@@ -106,9 +106,9 @@ Preview sites are protected by Azure Static Web Apps authentication. Users sign 
 
 - Review index: `https://delightful-plant-05da2520f.7.azurestaticapps.net/`
 - Latest main preview: `https://delightful-plant-05da2520f.7.azurestaticapps.net/preview/`
-- Pull request previews: posted back to the pull request after deployment succeeds
+- Pull request previews: `https://delightful-plant-05da2520f.7.azurestaticapps.net/preview/pr/<number>/`
 
-The review index links to the latest main preview and open same-repository pull request previews. Azure keeps a pull request preview URL stable for the life of the PR and removes the environment when the PR closes.
+The review index links to the latest main preview and open same-repository pull request previews. Pull request previews are deployed under the protected review host so reviewers use the same GitHub sign-in and `reviewer` role assignment for every preview.
 
 To request access, ask a project administrator to invite your GitHub account to the Azure Static Web Apps `reviewer` role for `elevated-thinking-preview-swa`. Uninvited users can authenticate but will be denied access.
 

@@ -11,11 +11,18 @@ const stripProtocol = (value) =>
     .replace(/^https?:\/\//i, "")
     .replace(/\/+$/, "");
 
+const normalizeUrlBase = (value) => String(value).replace(/\/?$/, "/");
+
 export const getPullRequestPreviewUrl = ({
   defaultHostName,
+  pullRequestPreviewBaseUrl,
   pullRequestNumber,
   region,
 }) => {
+  if (pullRequestPreviewBaseUrl) {
+    return `${normalizeUrlBase(pullRequestPreviewBaseUrl)}${pullRequestNumber}/`;
+  }
+
   const hostName = stripProtocol(defaultHostName);
   const firstDotIndex = hostName.indexOf(".");
 
@@ -37,6 +44,7 @@ export const buildPreviewIndexHtml = ({
   mainPreviewUrl = "/preview/",
   openPullRequests = [],
   previewHost,
+  pullRequestPreviewBaseUrl,
   previewRegion,
   repository,
 }) => {
@@ -46,6 +54,7 @@ export const buildPreviewIndexHtml = ({
         pullRequest.previewUrl ??
         getPullRequestPreviewUrl({
           defaultHostName: previewHost,
+          pullRequestPreviewBaseUrl,
           pullRequestNumber: pullRequest.number,
           region: previewRegion,
         });
@@ -59,23 +68,32 @@ export const buildPreviewIndexHtml = ({
     : '<ul class="preview-list" data-preview-list hidden></ul>\n        <p class="empty-state" data-empty-state>No open pull request previews.</p>';
 
   const runtimePreviewScript =
-    repository && previewHost && previewRegion
+    repository && (pullRequestPreviewBaseUrl || (previewHost && previewRegion))
       ? `<script>
       (() => {
         const repository = ${JSON.stringify(repository)};
         const previewHost = ${JSON.stringify(stripProtocol(previewHost))};
+        const pullRequestPreviewBaseUrl = ${JSON.stringify(
+          pullRequestPreviewBaseUrl
+            ? normalizeUrlBase(pullRequestPreviewBaseUrl)
+            : ""
+        )};
         const previewRegion = ${JSON.stringify(previewRegion)};
         const list = document.querySelector("[data-preview-list]");
         const emptyState = document.querySelector("[data-empty-state]");
 
-        if (!repository || !previewHost || !previewRegion || !list || !emptyState) {
+        if (!repository || !list || !emptyState) {
           return;
         }
 
         const getPreviewUrl = (pullRequestNumber) => {
+          if (pullRequestPreviewBaseUrl) {
+            return \`\${pullRequestPreviewBaseUrl}\${pullRequestNumber}/\`;
+          }
+
           const firstDotIndex = previewHost.indexOf(".");
 
-          if (firstDotIndex === -1) {
+          if (firstDotIndex === -1 || !previewRegion) {
             return "#";
           }
 

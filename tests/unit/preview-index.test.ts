@@ -11,16 +11,16 @@ describe("preview index", () => {
         { number: 27, title: "Restore <preview> index" },
         { number: 31, title: "Add auth checks" },
       ],
-      previewHost: "delightful-plant-05da2520f.7.azurestaticapps.net",
-      previewRegion: "eastus2",
+      pullRequestPreviewBaseUrl:
+        "https://delightful-plant-05da2520f.7.azurestaticapps.net/preview/pr/",
     });
 
     expect(html).toContain('href="/preview/"');
     expect(html).toContain(
-      'href="https://delightful-plant-05da2520f-27.eastus2.7.azurestaticapps.net/"'
+      'href="https://delightful-plant-05da2520f.7.azurestaticapps.net/preview/pr/27/"'
     );
     expect(html).toContain(
-      'href="https://delightful-plant-05da2520f-31.eastus2.7.azurestaticapps.net/"'
+      'href="https://delightful-plant-05da2520f.7.azurestaticapps.net/preview/pr/31/"'
     );
     expect(html).toContain("PR #27:");
     expect(html).toContain("Restore &lt;preview&gt; index");
@@ -29,12 +29,12 @@ describe("preview index", () => {
   it("can derive an Azure Static Web Apps pull request preview URL", () => {
     expect(
       getPullRequestPreviewUrl({
-        defaultHostName: "delightful-plant-05da2520f.7.azurestaticapps.net",
+        pullRequestPreviewBaseUrl:
+          "https://delightful-plant-05da2520f.7.azurestaticapps.net/preview/pr/",
         pullRequestNumber: 13,
-        region: "eastus2",
       })
     ).toBe(
-      "https://delightful-plant-05da2520f-13.eastus2.7.azurestaticapps.net/"
+      "https://delightful-plant-05da2520f.7.azurestaticapps.net/preview/pr/13/"
     );
   });
 });

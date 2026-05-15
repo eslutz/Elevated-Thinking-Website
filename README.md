@@ -110,7 +110,23 @@ Preview sites are protected by Azure Static Web Apps authentication. Users sign 
 
 The review index links to the latest main preview and open same-repository pull request previews. Pull request previews are deployed under the protected review host so reviewers use the same GitHub sign-in and `reviewer` role assignment for every preview.
 
+### Preview Deployment Access
+
 To request access, ask a project administrator to invite your GitHub account to the Azure Static Web Apps `reviewer` role for `elevated-thinking-preview-swa`. Uninvited users can authenticate but will be denied access.
+
+> [!NOTE]
+> To grant access run this command with the GitHub username of the requestor.
+> 
+> ```bash
+> az staticwebapp users invite \
+>   --name elevated-thinking-preview-swa \
+>   --resource-group rg-elevated-thinking-preview \
+>   --authentication-provider GitHub \
+>   --user-details <github-username> \
+>   --roles reviewer \
+>   --domain delightful-plant-05da2520f.7.azurestaticapps.net \
+>   --invitation-expiration-in-hours 36
+> ```
 
 ## Production Deployment
 
@@ -129,7 +145,7 @@ The workflow verifies that the Git tag matches the package version, runs formatt
 
 If the `prod` environment has required reviewers, the deployment pauses for approval before accessing Hostinger secrets.
 
-## Production Retry And Rollback
+### Retry And Rollback
 
 To retry a failed production deployment, open the failed `Production Deploy` run in GitHub Actions and choose **Re-run jobs**.
 

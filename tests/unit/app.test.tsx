@@ -149,7 +149,15 @@ describe("App", () => {
 
   it("aligns footer contact with the supporting brand copy on desktop", () => {
     const { container } = render(<App />);
+    const footer = container.querySelector("footer");
 
-    expect(container.querySelector("footer > div")).toHaveClass("lg:items-end");
+    expect(footer?.querySelector(":scope > div")).toHaveClass(
+      "lg:grid-cols-[auto_1fr]"
+    );
+    expect(footer?.querySelector("p")).toHaveClass("lg:row-start-2");
+    expect(footer?.querySelector("address")).toHaveClass(
+      "lg:row-start-2",
+      "lg:justify-self-end"
+    );
   });
 });

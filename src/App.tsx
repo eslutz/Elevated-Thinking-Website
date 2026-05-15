@@ -249,20 +249,18 @@ export default function ElevatedOnePageSite() {
       </main>
 
       <footer id="contact" className="border-t border-black/5 px-6 py-10">
-        <div className="mx-auto flex max-w-7xl flex-col justify-between gap-6 lg:flex-row lg:items-end">
-          <div>
-            <img
-              src={logoUrl}
-              alt="Elevated"
-              className="brand-logo brand-logo-footer"
-              width="895"
-              height="130"
-            />
-            <p className="mt-2 text-sm text-[var(--color-primary)]/80">
-              Design-led strategy and AI-enabled product work.
-            </p>
-          </div>
-          <address className="text-sm not-italic">
+        <div className="mx-auto grid max-w-7xl gap-y-2 lg:grid-cols-[auto_1fr] lg:items-end lg:gap-x-8">
+          <img
+            src={logoUrl}
+            alt="Elevated"
+            className="brand-logo brand-logo-footer lg:col-start-1 lg:row-start-1"
+            width="895"
+            height="130"
+          />
+          <p className="text-sm text-[var(--color-primary)]/80 lg:col-start-1 lg:row-start-2">
+            Design-led strategy and AI-enabled product work.
+          </p>
+          <address className="mt-4 text-sm not-italic lg:col-start-2 lg:row-start-2 lg:mt-0 lg:justify-self-end">
             <div>
               <a
                 className="text-inherit"

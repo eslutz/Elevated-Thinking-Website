@@ -181,7 +181,44 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build static site
+      - name: Collect open pull requests
+        if: github.event_name == 'push'
+        id: open_pull_requests
+        uses: actions/github-script@v9.0.0
+        with:
+          result-encoding: string
+          script: |
+            const pullRequests = await github.paginate(github.rest.pulls.list, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100,
+            });
+
+            return JSON.stringify(
+              pullRequests
+                .filter(
+                  (pullRequest) =>
+                    pullRequest.head.repo?.full_name === context.payload.repository.full_name
+                )
+                .map((pullRequest) => ({
+                  number: pullRequest.number,
+                  title: pullRequest.title,
+                }))
+            );
+
+      - name: Build non-production preview index
+        if: github.event_name == 'push'
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          MAIN_PREVIEW_URL: /preview/
+          OPEN_PRS_JSON: ${{ steps.open_pull_requests.outputs.result }}
+          SWA_DEFAULT_HOSTNAME: delightful-plant-05da2520f.7.azurestaticapps.net
+          SWA_PREVIEW_REGION: eastus2
+        run: npm run build:non-prod-preview
+
+      - name: Build pull request preview
+        if: github.event_name == 'pull_request'
         run: npm run build
 
       - name: Verify Static Web Apps config

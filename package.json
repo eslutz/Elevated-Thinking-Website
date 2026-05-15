@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:non-prod-preview": "node scripts/build-non-prod-preview.mjs",
     "preview": "vite preview",
     "prepare": "node scripts/configure-git-hooks.mjs",
     "test:unit": "jest",

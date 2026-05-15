@@ -61,19 +61,23 @@ Preview build flow:
 8. `smoke_tests` installs Playwright browser dependencies
 9. `smoke_tests` runs `npm run test:smoke`
 10. `smoke_tests` uploads the Playwright HTML report artifact
-11. `deploy` builds the static site after all required checks pass
-12. `deploy` verifies `dist/staticwebapp.config.json` exists
-13. `deploy` uploads `dist/` to Azure Static Web Apps
+11. `deploy` builds the static site after all required checks pass.
+12. Pushes to `main` run `npm run build:non-prod-preview`.
+13. Pull requests run `npm run build`.
+14. `deploy` verifies `dist/staticwebapp.config.json` exists.
+15. `deploy` uploads `dist/` to Azure Static Web Apps.
 
-Main-branch pushes deploy to the `elevated-thinking-preview-swa` production environment for non-production review. Same-repository pull requests deploy to Azure Static Web Apps pre-production environments. Fork pull requests run verification but do not deploy because they cannot access the deployment token.
+Main-branch pushes deploy a protected review index to the `elevated-thinking-preview-swa` production environment for non-production review. The latest main preview is served from `/preview/`. Same-repository pull requests deploy to Azure Static Web Apps pre-production environments and are linked from the root review index. Fork pull requests run verification but do not deploy because they cannot access the deployment token.
 
 Preview access checks:
 
-1. A private browser session that is not signed in should redirect to GitHub login.
-2. A GitHub user with an accepted `reviewer` role invitation should be able to view the preview site.
-3. A signed-in GitHub user without the `reviewer` role should be denied.
-4. Closing a same-repository pull request should close the matching Azure Static Web Apps pre-production environment.
-5. The old GitHub Pages URL should not serve previews after Pages is disabled and the `gh-pages` branch is deleted.
+1. A private browser session that is not signed in should redirect the root review index to GitHub login.
+2. A GitHub user with an accepted `reviewer` role invitation should be able to view the root review index.
+3. The root review index should link to `/preview/` for the latest main preview.
+4. The root review index should link to open same-repository pull request previews.
+5. A signed-in GitHub user without the `reviewer` role should be denied.
+6. Closing a same-repository pull request should close the matching Azure Static Web Apps pre-production environment.
+7. The old GitHub Pages URL should not serve previews after Pages is disabled and the `gh-pages` branch is deleted.
 
 ### Production (`.github/workflows/deploy-production.yml`)
 

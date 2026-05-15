@@ -28,6 +28,9 @@ test("app smoke", async ({ page }) => {
     page.getByRole("link", { name: /start a conversation/i }).first()
   ).toHaveAttribute("href", calendarUrl);
   await expect(
+    page.getByRole("link", { name: /start a conversation/i }).first()
+  ).toHaveAttribute("target", "_blank");
+  await expect(
     page.getByRole("img", { name: /elevated/i }).first()
   ).toBeVisible();
 });

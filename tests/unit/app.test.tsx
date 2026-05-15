@@ -66,6 +66,8 @@ describe("App", () => {
       name: /start a conversation/i,
     })) {
       expect(link).toHaveAttribute("href", calendarUrl);
+      expect(link).toHaveAttribute("target", "_blank");
+      expect(link).toHaveAttribute("rel", "noreferrer");
     }
 
     expect(

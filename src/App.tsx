@@ -157,6 +157,8 @@ export default function ElevatedOnePageSite() {
             </p>
             <a
               href={calendarUrl}
+              rel="noreferrer"
+              target="_blank"
               className="mt-8 inline-block rounded-xl bg-[var(--color-primary)] px-6 py-3 text-white"
             >
               Start a conversation
@@ -253,6 +255,8 @@ export default function ElevatedOnePageSite() {
 
             <a
               href={calendarUrl}
+              rel="noreferrer"
+              target="_blank"
               className="absolute -bottom-5 right-10 rounded-xl bg-[var(--color-accent)] px-6 py-4 text-white shadow-lg"
             >
               Start a conversation

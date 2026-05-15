@@ -165,12 +165,12 @@ jobs:
       pull-requests: write
     environment:
       name: non-prod-preview
-      url: ${{ steps.deploy.outputs.static_web_app_url }}
+      url: ${{ github.event_name == 'pull_request' && format('https://delightful-plant-05da2520f.7.azurestaticapps.net/preview/pr/{0}/', github.event.pull_request.number) || 'https://delightful-plant-05da2520f.7.azurestaticapps.net/' }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v6.0.2
         with:
-          persist-credentials: false
+          persist-credentials: true
 
       - name: Set up Node.js
         uses: actions/setup-node@v6.4.0
@@ -178,11 +178,7 @@ jobs:
           node-version: 20
           cache: npm
 
-      - name: Install dependencies
-        run: npm ci
-
       - name: Collect open pull requests
-        if: github.event_name == 'push'
         id: open_pull_requests
         uses: actions/github-script@v9.0.0
         with:
@@ -207,33 +203,26 @@ jobs:
                 }))
             );
 
-      - name: Build non-production preview index
-        if: github.event_name == 'push'
+      - name: Build path-based preview deployment
         env:
           GITHUB_REPOSITORY: ${{ github.repository }}
+          MAIN_BRANCH: main
           MAIN_PREVIEW_URL: /preview/
           OPEN_PRS_JSON: ${{ steps.open_pull_requests.outputs.result }}
-          SWA_DEFAULT_HOSTNAME: delightful-plant-05da2520f.7.azurestaticapps.net
-          SWA_PREVIEW_REGION: eastus2
-        run: npm run build:non-prod-preview
-
-      - name: Build pull request preview
-        if: github.event_name == 'pull_request'
-        run: npm run build
+          PR_PREVIEW_PATH_BASE: /preview/pr/
+          PULL_REQUEST_PREVIEW_BASE_URL: https://delightful-plant-05da2520f.7.azurestaticapps.net/preview/pr/
+        run: npm run build:preview-deployment
 
       - name: Verify Static Web Apps config
         run: test -f dist/staticwebapp.config.json
 
       - name: Deploy to Azure Static Web Apps
-        id: deploy
-        uses: Azure/static-web-apps-deploy@v1
-        with:
-          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_NONPROD_PREVIEW }}
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          action: upload
-          app_location: dist
-          skip_app_build: true
-          production_branch: main
+        env:
+          SWA_CLI_DEPLOYMENT_TOKEN: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_NONPROD_PREVIEW }}
+        run: >-
+          npx -y @azure/static-web-apps-cli@2.0.9 deploy ./dist
+          --env production
+          --deployment-token "$SWA_CLI_DEPLOYMENT_TOKEN"
 
   close_preview:
     if: >-
@@ -246,11 +235,62 @@ jobs:
       pull-requests: write
     environment:
       name: non-prod-preview
+      url: https://delightful-plant-05da2520f.7.azurestaticapps.net/
     steps:
-      - name: Close Azure Static Web Apps PR environment
-        uses: Azure/static-web-apps-deploy@v1
+      - name: Check out repository
+        uses: actions/checkout@v6.0.2
         with:
-          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_NONPROD_PREVIEW }}
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          action: close
-          app_location: /
+          persist-credentials: true
+          ref: main
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6.4.0
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Collect open pull requests
+        id: open_pull_requests
+        uses: actions/github-script@v9.0.0
+        with:
+          result-encoding: string
+          script: |
+            const pullRequests = await github.paginate(github.rest.pulls.list, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100,
+            });
+
+            return JSON.stringify(
+              pullRequests
+                .filter(
+                  (pullRequest) =>
+                    pullRequest.head.repo?.full_name === context.payload.repository.full_name
+                )
+                .map((pullRequest) => ({
+                  number: pullRequest.number,
+                  title: pullRequest.title,
+                }))
+            );
+
+      - name: Build path-based preview deployment
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          MAIN_BRANCH: main
+          MAIN_PREVIEW_URL: /preview/
+          OPEN_PRS_JSON: ${{ steps.open_pull_requests.outputs.result }}
+          PR_PREVIEW_PATH_BASE: /preview/pr/
+          PULL_REQUEST_PREVIEW_BASE_URL: https://delightful-plant-05da2520f.7.azurestaticapps.net/preview/pr/
+        run: npm run build:preview-deployment
+
+      - name: Verify Static Web Apps config
+        run: test -f dist/staticwebapp.config.json
+
+      - name: Deploy to Azure Static Web Apps
+        env:
+          SWA_CLI_DEPLOYMENT_TOKEN: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_NONPROD_PREVIEW }}
+        run: >-
+          npx -y @azure/static-web-apps-cli@2.0.9 deploy ./dist
+          --env production
+          --deployment-token "$SWA_CLI_DEPLOYMENT_TOKEN"

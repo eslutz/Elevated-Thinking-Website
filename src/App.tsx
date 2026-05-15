@@ -1,28 +1,107 @@
+import logoUrl from "./assets/elevated-logo.svg";
+import { useRevealParallax } from "./useRevealParallax";
+
+const calendarUrl = "https://calendar.app.google/ShyxHfNAutZC3Dg7A";
+const footerEmail = "hello@elevatedthinking.co";
+
+type ImageAsset = {
+  photoId: string;
+  alt: string;
+  position?: string;
+};
+
 type Service = {
   title: string;
   body: string;
+  image: ImageAsset;
+};
+
+const imageWidths = [640, 960, 1280, 1600] as const;
+
+const heroImage: ImageAsset = {
+  photoId: "photo-1586717791821-3f44a563fa4c",
+  alt: "Person writing on white paper",
+  position: "center",
 };
 
 const services: readonly Service[] = [
   {
     title: "Product strategy",
     body: "Clarify what to build, why it matters, and how decisions ripple across the system before they harden into roadmap debt.",
+    image: {
+      photoId: "photo-1501504905252-473c47e087f8",
+      alt: "MacBook near an open book",
+      position: "center",
+    },
   },
   {
     title: "Service & workflow design",
     body: "Map the real-world flow of people, policy, tools, and handoffs so teams can reduce friction instead of decorating it.",
+    image: {
+      photoId: "photo-1743385779347-1549dabf1320",
+      alt: "Workflow diagram showing product brief and user goals",
+      position: "center",
+    },
   },
   {
     title: "UX research & design",
     body: "Design for real users, real constraints, and real environments—especially where stakes are high.",
+    image: {
+      photoId: "photo-1573497620053-ea5300f94f21",
+      alt: "Two women sitting together",
+      position: "center",
+    },
   },
   {
     title: "AI-enabled delivery",
     body: "Use AI where it improves speed, insight, or decision support—without turning judgment into a black box circus.",
+    image: {
+      photoId: "photo-1541560052-5e137f229371",
+      alt: "Person using a MacBook",
+      position: "center",
+    },
   },
 ];
 
+function unsplashUrl(photoId: string, width: number) {
+  return `https://images.unsplash.com/${photoId}?q=80&w=${width}&auto=format&fit=crop`;
+}
+
+function unsplashSrcSet(photoId: string) {
+  return imageWidths
+    .map((width) => `${unsplashUrl(photoId, width)} ${width}w`)
+    .join(", ");
+}
+
+function ResponsiveImage({
+  image,
+  sizes,
+  eager = false,
+  className = "",
+}: {
+  image: ImageAsset;
+  sizes: string;
+  eager?: boolean;
+  className?: string;
+}) {
+  return (
+    <img
+      alt={image.alt}
+      className={`h-full w-full object-cover ${className}`}
+      decoding="async"
+      fetchPriority={eager ? "high" : "auto"}
+      loading={eager ? "eager" : "lazy"}
+      sizes={sizes}
+      src={unsplashUrl(image.photoId, 960)}
+      srcSet={unsplashSrcSet(image.photoId)}
+      style={{ objectPosition: image.position }}
+    />
+  );
+}
+
 export default function ElevatedOnePageSite() {
+  useRevealParallax();
+
   return (
     <div
       id="top"
@@ -39,21 +118,21 @@ export default function ElevatedOnePageSite() {
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
           <a
             href="#top"
-            className="flex items-center gap-3"
+            className="flex items-center"
             aria-label="Elevated home"
           >
-            <div
-              className="h-9 w-9 rounded-xl bg-[var(--color-primary)]"
-              aria-hidden="true"
+            <img
+              src={logoUrl}
+              alt="Elevated"
+              className="brand-logo brand-logo-header"
+              width="895"
+              height="130"
             />
-            <span className="text-xl font-semibold">Elevated</span>
           </a>
           <nav
             className="hidden gap-8 text-sm text-[var(--color-primary)] md:flex"
             aria-label="Primary"
           >
-            <a href="#services">Services</a>
-            <a href="#approach">Approach</a>
             <a href="#contact">Contact</a>
           </nav>
         </div>
@@ -61,7 +140,11 @@ export default function ElevatedOnePageSite() {
 
       <main id="main-content">
         <section className="mx-auto grid max-w-7xl items-center gap-12 px-6 py-20 lg:grid-cols-2">
-          <div>
+          <div
+            className="reveal-copy"
+            data-reveal="copy"
+            style={{ transitionDelay: "80ms" }}
+          >
             <h1 className="text-5xl leading-[0.95] font-serif md:text-6xl">
               Systems thinking,
               <br />
@@ -73,21 +156,27 @@ export default function ElevatedOnePageSite() {
               where it actually matters.
             </p>
             <a
-              href="#contact"
+              href={calendarUrl}
+              rel="noreferrer"
+              target="_blank"
               className="mt-8 inline-block rounded-xl bg-[var(--color-primary)] px-6 py-3 text-white"
             >
               Start a conversation
             </a>
           </div>
 
-          <div className="relative">
-            <div
-              className="aspect-4/5 rounded-3xl bg-[var(--color-surface-muted)]"
-              aria-hidden="true"
+          <div
+            className="reveal-image image-frame"
+            data-parallax
+            data-parallax-speed="34"
+            data-reveal="image"
+            data-reveal-direction="right"
+          >
+            <ResponsiveImage
+              image={heroImage}
+              sizes="(min-width: 1024px) 50vw, 100vw"
+              eager
             />
-            <div className="absolute -bottom-6 -left-6 w-64 rounded-2xl bg-[var(--color-accent)] p-6 text-white shadow-xl">
-              <p className="text-lg leading-6">AI-enabled. Not AI-obsessed.</p>
-            </div>
           </div>
         </section>
 
@@ -106,15 +195,24 @@ export default function ElevatedOnePageSite() {
                     : ""
                 }`}
               >
-                <div className="relative" aria-hidden="true">
-                  <div className="aspect-4/5 rounded-3xl bg-[var(--color-surface-muted)]" />
-                  <div className="absolute -right-5 top-8 w-60 rounded-2xl bg-[var(--color-primary)] p-6 text-white shadow-lg">
-                    <h3 className="text-lg font-semibold">{service.title}</h3>
-                    <p className="mt-2 text-sm text-white/80">{service.body}</p>
-                  </div>
+                <div
+                  className="reveal-image image-frame"
+                  data-parallax
+                  data-parallax-speed="30"
+                  data-reveal="image"
+                  data-reveal-direction={i % 2 === 0 ? "left" : "right"}
+                >
+                  <ResponsiveImage
+                    image={service.image}
+                    sizes="(min-width: 1024px) 45vw, 100vw"
+                  />
                 </div>
 
-                <article>
+                <article
+                  className="reveal-copy"
+                  data-reveal="copy"
+                  style={{ transitionDelay: `${120 + i * 80}ms` }}
+                >
                   <h3 className="text-4xl font-serif leading-tight">
                     {service.title}
                   </h3>
@@ -156,7 +254,9 @@ export default function ElevatedOnePageSite() {
             </div>
 
             <a
-              href="#contact"
+              href={calendarUrl}
+              rel="noreferrer"
+              target="_blank"
               className="absolute -bottom-5 right-10 rounded-xl bg-[var(--color-accent)] px-6 py-4 text-white shadow-lg"
             >
               Start a conversation
@@ -168,7 +268,13 @@ export default function ElevatedOnePageSite() {
       <footer id="contact" className="border-t border-black/5 px-6 py-10">
         <div className="mx-auto flex max-w-7xl flex-col justify-between gap-6 lg:flex-row">
           <div>
-            <div className="text-xl font-semibold">Elevated</div>
+            <img
+              src={logoUrl}
+              alt="Elevated"
+              className="brand-logo brand-logo-footer"
+              width="895"
+              height="130"
+            />
             <p className="mt-2 text-sm text-[var(--color-primary)]/80">
               Design-led strategy and AI-enabled product work.
             </p>
@@ -177,17 +283,9 @@ export default function ElevatedOnePageSite() {
             <div>
               <a
                 className="text-inherit"
-                href="mailto:lindsey@elevatedthinking.co?subject=Hello"
+                href={`mailto:${footerEmail}?subject=Hello`}
               >
-                lindsey@elevatedthinking.co
-              </a>
-            </div>
-            <div>
-              <a
-                className="text-inherit"
-                href="mailto:paul@elevatedthinking.co?subject=Hello"
-              >
-                paul@elevatedthinking.co
+                {footerEmail}
               </a>
             </div>
           </address>

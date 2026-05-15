@@ -18,11 +18,11 @@ After the Azure Static Web App and GitHub secret are configured:
 
 1. Open or update a same-repository pull request.
 2. Confirm `validate`, `unit_tests`, and `smoke_tests` pass.
-3. Confirm `Non-Prod Preview Deploy` posts an Azure Static Web Apps preview URL.
+3. Confirm `Non-Prod Preview Deploy` publishes a preview URL under `/preview/pr/<number>/`.
 4. Open the root review index in a private browser window and confirm it redirects to GitHub login.
 5. Sign in with an invited GitHub account and confirm the review index loads.
 6. Confirm the review index links to the latest main preview at `/preview/`.
-7. Confirm the review index links to open pull request preview URLs.
+7. Confirm the review index links to open pull request preview URLs under `/preview/pr/<number>/`.
 8. Sign in with an uninvited GitHub account and confirm access is denied.
 
 ## 2. Add Preview Reviewers

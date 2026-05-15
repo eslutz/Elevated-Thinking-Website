@@ -16,6 +16,7 @@ html {
 body {
   margin: 0;
   min-width: 320px;
+  overflow-x: hidden;
   background: var(--color-background);
   color: var(--color-text);
   font-family: "Helvetica Neue", Arial, sans-serif;
@@ -39,4 +40,100 @@ button {
 
 * {
   box-sizing: border-box;
+}
+
+.brand-logo {
+  display: block;
+  height: auto;
+  max-width: 100%;
+}
+
+.brand-logo-header {
+  width: clamp(9.5rem, 18vw, 14rem);
+}
+
+.brand-logo-footer {
+  width: clamp(10rem, 20vw, 15rem);
+}
+
+.image-frame {
+  aspect-ratio: 4 / 5;
+  background: var(--color-surface-muted);
+  border-radius: 1.5rem;
+  box-shadow: 0 1.5rem 3rem rgb(47 47 47 / 0.12);
+  overflow: hidden;
+  position: relative;
+}
+
+.image-frame img {
+  display: block;
+}
+
+.reveal-image {
+  opacity: 0;
+  transition:
+    opacity 760ms ease,
+    transform 860ms cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.reveal-copy {
+  opacity: 1;
+  transition: transform 860ms cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
+
+.reveal-image {
+  --parallax-y: 0px;
+  --reveal-x: 0px;
+  transform: translate3d(var(--reveal-x), 2rem, 0);
+}
+
+.reveal-image[data-reveal-direction="left"] {
+  --reveal-x: -3rem;
+}
+
+.reveal-image[data-reveal-direction="right"] {
+  --reveal-x: 3rem;
+}
+
+.reveal-copy {
+  transform: translate3d(0, 2.25rem, 0);
+}
+
+.reveal-image[data-revealed="true"] {
+  opacity: 1;
+  transform: translate3d(0, var(--parallax-y), 0);
+}
+
+.reveal-copy[data-revealed="true"] {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .reveal-image,
+  .reveal-copy,
+  .reveal-image[data-revealed="true"],
+  .reveal-copy[data-revealed="true"] {
+    opacity: 1;
+    transform: none;
+    transition: none;
+    transition-delay: 0ms !important;
+    will-change: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .brand-logo-header {
+    width: 9.25rem;
+  }
+
+  .image-frame {
+    border-radius: 1rem;
+  }
 }

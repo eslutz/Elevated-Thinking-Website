@@ -146,4 +146,10 @@ describe("App", () => {
       expect(image).toHaveAttribute("fetchpriority", "auto");
     }
   });
+
+  it("aligns footer contact with the supporting brand copy on desktop", () => {
+    const { container } = render(<App />);
+
+    expect(container.querySelector("footer > div")).toHaveClass("lg:items-end");
+  });
 });

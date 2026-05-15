@@ -249,7 +249,7 @@ export default function ElevatedOnePageSite() {
       </main>
 
       <footer id="contact" className="border-t border-black/5 px-6 py-10">
-        <div className="mx-auto flex max-w-7xl flex-col justify-between gap-6 lg:flex-row">
+        <div className="mx-auto flex max-w-7xl flex-col justify-between gap-6 lg:flex-row lg:items-end">
           <div>
             <img
               src={logoUrl}

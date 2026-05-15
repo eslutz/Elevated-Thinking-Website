@@ -65,8 +65,14 @@ button {
   position: relative;
 }
 
+.image-frame picture,
 .image-frame img {
   display: block;
+}
+
+.image-frame picture {
+  height: 100%;
+  width: 100%;
 }
 
 .reveal-image {

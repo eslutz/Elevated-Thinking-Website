@@ -70,6 +70,49 @@ test("app exposes favicon assets", async ({ page }) => {
   }
 });
 
+test("page photography loads from local build assets", async ({ page }) => {
+  const unsplashRequests: string[] = [];
+  page.on("request", (request) => {
+    if (request.url().includes("images.unsplash.com")) {
+      unsplashRequests.push(request.url());
+    }
+  });
+
+  await gotoApp(page);
+
+  for (const name of [
+    /person writing on white paper/i,
+    /macbook near an open book/i,
+    /workflow diagram/i,
+    /two women sitting together/i,
+    /person using a macbook/i,
+  ]) {
+    const image = page.getByRole("img", { name });
+    await image.scrollIntoViewIfNeeded();
+    await expect(image).toBeVisible();
+    await expect
+      .poll(() =>
+        image.evaluate((element) => {
+          const img = element as HTMLImageElement;
+          return img.complete && img.naturalWidth > 0 && img.naturalHeight > 0;
+        })
+      )
+      .toBe(true);
+  }
+
+  const photoSources = await page
+    .locator("main picture img")
+    .evaluateAll((images) =>
+      images.map((image) => (image as HTMLImageElement).currentSrc)
+    );
+
+  expect(unsplashRequests).toEqual([]);
+  expect(photoSources).toHaveLength(5);
+  expect(photoSources.every((source) => source.includes("/assets/"))).toBe(
+    true
+  );
+});
+
 test("app has no critical accessibility violations", async ({ page }) => {
   await gotoApp(page);
 

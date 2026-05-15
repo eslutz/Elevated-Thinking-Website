@@ -82,22 +82,80 @@ describe("App", () => {
 
     expect(
       screen.getByRole("img", { name: /person writing on white paper/i })
-    ).toHaveAttribute("src", expect.stringContaining("photo-1586717791821"));
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("img", { name: /macbook near an open book/i })
-    ).toHaveAttribute("src", expect.stringContaining("photo-1501504905252"));
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("img", { name: /workflow diagram/i })
-    ).toHaveAttribute("src", expect.stringContaining("photo-1743385779347"));
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("img", { name: /two women sitting together/i })
-    ).toHaveAttribute("src", expect.stringContaining("photo-1573497620053"));
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("img", { name: /person using a macbook/i })
-    ).toHaveAttribute("src", expect.stringContaining("photo-1541560052"));
+    ).toBeInTheDocument();
 
     expect(
       screen.queryByText(/AI-enabled\. Not AI-obsessed\./i)
     ).not.toBeInTheDocument();
+  });
+
+  it("serves page photography from local responsive picture assets", () => {
+    const { container } = render(<App />);
+    const renderedUrls = [
+      ...Array.from(container.querySelectorAll("source")).flatMap((source) =>
+        (source.getAttribute("srcset") ?? "").split(",")
+      ),
+      ...screen
+        .getAllByRole("img")
+        .flatMap((image) => [
+          image.getAttribute("src") ?? "",
+          image.getAttribute("srcset") ?? "",
+        ]),
+    ];
+
+    expect(renderedUrls.join(" ")).not.toContain("images.unsplash.com");
+    expect(container.querySelectorAll("picture")).toHaveLength(5);
+    expect(
+      container.querySelectorAll('source[type="image/avif"]')
+    ).toHaveLength(5);
+    expect(
+      container.querySelectorAll('source[type="image/webp"]')
+    ).toHaveLength(5);
+
+    for (const source of container.querySelectorAll("picture source")) {
+      expect(source).toHaveAttribute("srcset", expect.stringContaining("640w"));
+      expect(source).toHaveAttribute("srcset", expect.stringContaining("960w"));
+      expect(source).toHaveAttribute(
+        "srcset",
+        expect.stringContaining("1280w")
+      );
+      expect(source).toHaveAttribute(
+        "srcset",
+        expect.stringContaining("1600w")
+      );
+    }
+  });
+
+  it("keeps image loading priority aligned to viewport importance", () => {
+    render(<App />);
+
+    expect(
+      screen.getByRole("img", { name: /person writing on white paper/i })
+    ).toHaveAttribute("loading", "eager");
+    expect(
+      screen.getByRole("img", { name: /person writing on white paper/i })
+    ).toHaveAttribute("fetchpriority", "high");
+
+    for (const image of [
+      screen.getByRole("img", { name: /macbook near an open book/i }),
+      screen.getByRole("img", { name: /workflow diagram/i }),
+      screen.getByRole("img", { name: /two women sitting together/i }),
+      screen.getByRole("img", { name: /person using a macbook/i }),
+    ]) {
+      expect(image).toHaveAttribute("loading", "lazy");
+      expect(image).toHaveAttribute("fetchpriority", "auto");
+    }
   });
 });

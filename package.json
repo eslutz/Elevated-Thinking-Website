@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "images:build": "node scripts/build-images.mjs",
     "build:non-prod-preview": "node scripts/build-non-prod-preview.mjs",
     "build:preview-deployment": "node scripts/build-preview-deployment.mjs",
     "preview": "vite preview",
@@ -36,6 +37,7 @@
     "jest": "^30.4.2",
     "jest-environment-jsdom": "^30.4.1",
     "prettier": "^3.8.3",
+    "sharp": "^0.34.5",
     "tailwindcss": "^4.3.0",
     "typescript": "^6.0.3",
     "vite": "^8.0.13"

@@ -5,6 +5,8 @@ export default {
   moduleFileExtensions: ["ts", "tsx", "js", "jsx", "mjs"],
   setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
   moduleNameMapper: {
+    "\\.(avif|webp|jpg|jpeg|png)$":
+      "<rootDir>/tests/unit/__mocks__/fileMock.ts",
     "\\.svg$": "<rootDir>/tests/unit/__mocks__/svgMock.ts",
   },
   collectCoverageFrom: [

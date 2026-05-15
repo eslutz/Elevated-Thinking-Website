@@ -116,7 +116,7 @@ To request access, ask a project administrator to invite your GitHub account to 
 
 > [!NOTE]
 > To grant access run this command with the GitHub username of the requestor.
-> 
+>
 > ```bash
 > az staticwebapp users invite \
 >   --name elevated-thinking-preview-swa \

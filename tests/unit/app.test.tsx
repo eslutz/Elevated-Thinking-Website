@@ -43,6 +43,10 @@ describe("App", () => {
     expect(
       screen.getByRole("navigation", { name: /primary/i })
     ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /^contact$/i })).toHaveAttribute(
+      "href",
+      "#contact"
+    );
 
     expect(screen.getByRole("main")).toHaveAttribute("id", "main-content");
 

@@ -20,7 +20,7 @@ test("app smoke", async ({ page }) => {
       name: /built for work where decisions actually matter\./i,
     })
   ).toBeVisible();
-  await expect(page.getByRole("link", { name: /services/i })).toBeVisible();
+  await expect(page.getByRole("link", { name: /contact/i })).toBeVisible();
   await expect(
     page.getByRole("link", { name: /hello@elevatedthinking\.co/i })
   ).toBeVisible();

@@ -133,8 +133,6 @@ export default function ElevatedOnePageSite() {
             className="hidden gap-8 text-sm text-[var(--color-primary)] md:flex"
             aria-label="Primary"
           >
-            <a href="#services">Services</a>
-            <a href="#approach">Approach</a>
             <a href="#contact">Contact</a>
           </nav>
         </div>

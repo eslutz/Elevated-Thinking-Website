@@ -35,6 +35,41 @@ test("app smoke", async ({ page }) => {
   ).toBeVisible();
 });
 
+test("app exposes favicon assets", async ({ page }) => {
+  await page.goto("/");
+
+  await expect(
+    page.locator('link[rel="icon"][href="/favicon.ico"]')
+  ).toHaveAttribute("sizes", "any");
+  await expect(
+    page.locator('link[rel="icon"][href="/favicon.svg"]')
+  ).toHaveAttribute("type", "image/svg+xml");
+  await expect(
+    page.locator('link[rel="apple-touch-icon"][href="/apple-touch-icon.png"]')
+  ).toHaveAttribute("sizes", "180x180");
+  await expect(
+    page.locator('link[rel="mask-icon"][href="/safari-pinned-tab.svg"]')
+  ).toHaveAttribute("color", "#37514e");
+  await expect(
+    page.locator('link[rel="manifest"][href="/site.webmanifest"]')
+  ).toHaveCount(1);
+
+  for (const assetPath of [
+    "/favicon.ico",
+    "/favicon.svg",
+    "/favicon-16x16.png",
+    "/favicon-32x32.png",
+    "/apple-touch-icon.png",
+    "/android-chrome-192x192.png",
+    "/android-chrome-512x512.png",
+    "/safari-pinned-tab.svg",
+    "/site.webmanifest",
+  ]) {
+    const response = await page.request.get(assetPath);
+    expect(response.ok()).toBe(true);
+  }
+});
+
 test("app has no critical accessibility violations", async ({ page }) => {
   await gotoApp(page);
 

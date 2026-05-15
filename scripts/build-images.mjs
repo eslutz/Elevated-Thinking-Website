@@ -1,4 +1,4 @@
-import { mkdir, readdir, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, readdir, rm, stat } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -17,41 +17,25 @@ const assetBudgetBytes = 500 * 1024;
 const images = [
   {
     slug: "hero",
-    photoId: "photo-1586717791821-3f44a563fa4c",
     cropPosition: "center",
   },
   {
     slug: "product-strategy",
-    photoId: "photo-1501504905252-473c47e087f8",
     cropPosition: "center",
   },
   {
     slug: "service-workflow",
-    photoId: "photo-1743385779347-1549dabf1320",
     cropPosition: "center",
   },
   {
     slug: "ux-research",
-    photoId: "photo-1573497620053-ea5300f94f21",
     cropPosition: "center",
   },
   {
     slug: "ai-delivery",
-    photoId: "photo-1541560052-5e137f229371",
     cropPosition: "center",
   },
 ];
-
-function sourceUrl(photoId) {
-  const params = new URLSearchParams({
-    fm: "jpg",
-    fit: "max",
-    q: "95",
-    w: "3200",
-  });
-
-  return `https://images.unsplash.com/${photoId}?${params.toString()}`;
-}
 
 async function pathExists(path) {
   try {
@@ -66,25 +50,19 @@ async function pathExists(path) {
   }
 }
 
-async function downloadSource(image) {
+async function localSourcePath(image) {
   const sourcePath = join(sourceDir, `${image.slug}.jpg`);
 
   if (await pathExists(sourcePath)) {
     return sourcePath;
   }
 
-  const response = await fetch(sourceUrl(image.photoId));
-
-  if (!response.ok) {
-    throw new Error(
-      `Failed to download ${image.slug} from Unsplash: ${response.status} ${response.statusText}`
-    );
-  }
-
-  const buffer = Buffer.from(await response.arrayBuffer());
-  await writeFile(sourcePath, buffer);
-
-  return sourcePath;
+  throw new Error(
+    `Missing local source image: ${sourcePath.replace(
+      `${rootDir}/`,
+      ""
+    )}. Place a JPG source file there before running this command.`
+  );
 }
 
 async function buildVariant({ sourcePath, slug, cropPosition, width, format }) {
@@ -175,7 +153,7 @@ await rm(outputDir, { recursive: true, force: true });
 await mkdir(outputDir, { recursive: true });
 
 for (const image of images) {
-  const sourcePath = await downloadSource(image);
+  const sourcePath = await localSourcePath(image);
 
   for (const width of widths) {
     await buildVariant({

@@ -71,13 +71,6 @@ test("app exposes favicon assets", async ({ page }) => {
 });
 
 test("page photography loads from local build assets", async ({ page }) => {
-  const unsplashRequests: string[] = [];
-  page.on("request", (request) => {
-    if (request.url().includes("images.unsplash.com")) {
-      unsplashRequests.push(request.url());
-    }
-  });
-
   await gotoApp(page);
 
   for (const name of [
@@ -105,12 +98,14 @@ test("page photography loads from local build assets", async ({ page }) => {
     .evaluateAll((images) =>
       images.map((image) => (image as HTMLImageElement).currentSrc)
     );
+  const pageOrigin = new URL(page.url()).origin;
 
-  expect(unsplashRequests).toEqual([]);
   expect(photoSources).toHaveLength(5);
-  expect(photoSources.every((source) => source.includes("/assets/"))).toBe(
-    true
-  );
+  for (const source of photoSources) {
+    const url = new URL(source);
+    expect(url.origin).toBe(pageOrigin);
+    expect(url.pathname).toContain("/assets/");
+  }
 });
 
 test("app has no critical accessibility violations", async ({ page }) => {

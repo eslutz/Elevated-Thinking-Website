@@ -72,7 +72,7 @@ describe("App", () => {
 
     expect(
       screen.getByRole("link", { name: /hello@elevatedthinking\.co/i })
-    ).toHaveAttribute("href", "mailto:hello@elevatedthinking.co");
+    ).toHaveAttribute("href", "mailto:hello@elevatedthinking.co?subject=Hello");
     expect(
       screen.queryByRole("link", { name: /lindsey@elevatedthinking\.co/i })
     ).not.toBeInTheDocument();

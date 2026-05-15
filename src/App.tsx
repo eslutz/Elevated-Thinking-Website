@@ -281,7 +281,10 @@ export default function ElevatedOnePageSite() {
           </div>
           <address className="text-sm not-italic">
             <div>
-              <a className="text-inherit" href={`mailto:${footerEmail}`}>
+              <a
+                className="text-inherit"
+                href={`mailto:${footerEmail}?subject=Hello`}
+              >
                 {footerEmail}
               </a>
             </div>

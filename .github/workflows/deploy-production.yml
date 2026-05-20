@@ -160,7 +160,7 @@ jobs:
           fi
           SLOTS_ROOT="$HOSTINGER_REMOTE_PATH/.deploy-slots"
           ACTIVE_SLOT_FILE=".active-slot"
-          SSH_CONNECT_PROGRAM="ssh -a -x -i $HOSTINGER_SSH_KEY_PATH -o IdentitiesOnly=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts -o StrictHostKeyChecking=$HOSTINGER_STRICT_HOST_KEY_CHECKING"
+          SSH_CONNECT_PROGRAM="ssh -a -x -i $HOSTINGER_SSH_KEY_PATH -o BatchMode=yes -o PreferredAuthentications=publickey -o IdentitiesOnly=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts -o StrictHostKeyChecking=$HOSTINGER_STRICT_HOST_KEY_CHECKING -o ConnectTimeout=20 -o ConnectionAttempts=1"
 
           for required in HOSTINGER_HOST HOSTINGER_REMOTE_PATH HOSTINGER_USERNAME HOSTINGER_SSH_KEY_PATH HOSTINGER_STRICT_HOST_KEY_CHECKING; do
             if [ -z "${!required}" ]; then
@@ -176,7 +176,7 @@ jobs:
           trap cleanup EXIT
 
           active_slot="green"
-          if lftp -u "$HOSTINGER_USERNAME" "sftp://$HOSTINGER_HOST:$HOSTINGER_PORT" <<EOF_LFTP
+          if lftp -u "$HOSTINGER_USERNAME","" "sftp://$HOSTINGER_HOST:$HOSTINGER_PORT" <<EOF_LFTP
           set sftp:connect-program "$SSH_CONNECT_PROGRAM"
           set sftp:auto-confirm yes
           set net:max-retries 2
@@ -205,7 +205,7 @@ jobs:
 
           printf '%s\n' "$target_slot" > "$tmp_dir/$ACTIVE_SLOT_FILE"
 
-          lftp -u "$HOSTINGER_USERNAME" "sftp://$HOSTINGER_HOST:$HOSTINGER_PORT" <<EOF_LFTP
+          lftp -u "$HOSTINGER_USERNAME","" "sftp://$HOSTINGER_HOST:$HOSTINGER_PORT" <<EOF_LFTP
           set sftp:connect-program "$SSH_CONNECT_PROGRAM"
           set sftp:auto-confirm yes
           set net:max-retries 2
@@ -317,7 +317,7 @@ jobs:
           fi
           SLOTS_ROOT="$HOSTINGER_REMOTE_PATH/.deploy-slots"
           ACTIVE_SLOT_FILE=".active-slot"
-          SSH_CONNECT_PROGRAM="ssh -a -x -i $HOSTINGER_SSH_KEY_PATH -o IdentitiesOnly=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts -o StrictHostKeyChecking=$HOSTINGER_STRICT_HOST_KEY_CHECKING"
+          SSH_CONNECT_PROGRAM="ssh -a -x -i $HOSTINGER_SSH_KEY_PATH -o BatchMode=yes -o PreferredAuthentications=publickey -o IdentitiesOnly=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts -o StrictHostKeyChecking=$HOSTINGER_STRICT_HOST_KEY_CHECKING -o ConnectTimeout=20 -o ConnectionAttempts=1"
 
           for required in HOSTINGER_HOST HOSTINGER_REMOTE_PATH HOSTINGER_USERNAME HOSTINGER_SSH_KEY_PATH HOSTINGER_STRICT_HOST_KEY_CHECKING; do
             if [ -z "${!required}" ]; then
@@ -333,7 +333,7 @@ jobs:
           }
           trap cleanup EXIT
 
-          lftp -u "$HOSTINGER_USERNAME" "sftp://$HOSTINGER_HOST:$HOSTINGER_PORT" <<EOF_LFTP
+          lftp -u "$HOSTINGER_USERNAME","" "sftp://$HOSTINGER_HOST:$HOSTINGER_PORT" <<EOF_LFTP
           set sftp:connect-program "$SSH_CONNECT_PROGRAM"
           set sftp:auto-confirm yes
           set net:max-retries 2
@@ -369,7 +369,7 @@ jobs:
 
           mkdir -p "$rollback_dist"
 
-          lftp -u "$HOSTINGER_USERNAME" "sftp://$HOSTINGER_HOST:$HOSTINGER_PORT" <<EOF_LFTP
+          lftp -u "$HOSTINGER_USERNAME","" "sftp://$HOSTINGER_HOST:$HOSTINGER_PORT" <<EOF_LFTP
           set sftp:connect-program "$SSH_CONNECT_PROGRAM"
           set sftp:auto-confirm yes
           set net:max-retries 2
@@ -386,7 +386,7 @@ jobs:
 
           printf '%s\n' "$rollback_slot" > "$tmp_dir/$ACTIVE_SLOT_FILE"
 
-          lftp -u "$HOSTINGER_USERNAME" "sftp://$HOSTINGER_HOST:$HOSTINGER_PORT" <<EOF_LFTP
+          lftp -u "$HOSTINGER_USERNAME","" "sftp://$HOSTINGER_HOST:$HOSTINGER_PORT" <<EOF_LFTP
           set sftp:connect-program "$SSH_CONNECT_PROGRAM"
           set sftp:auto-confirm yes
           set net:max-retries 2

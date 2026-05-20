@@ -112,13 +112,45 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes lftp
 
+      - name: Configure Hostinger SSH key
+        env:
+          HOSTINGER_KNOWN_HOSTS: ${{ secrets.HOSTINGER_KNOWN_HOSTS }}
+          HOSTINGER_SSH_PRIVATE_KEY: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "$HOSTINGER_SSH_PRIVATE_KEY" ]; then
+            echo "::error::Missing required secret: HOSTINGER_SSH_PRIVATE_KEY"
+            exit 1
+          fi
+
+          mkdir -p "$HOME/.ssh"
+          chmod 700 "$HOME/.ssh"
+
+          ssh_key_path="$RUNNER_TEMP/hostinger_deploy_key"
+          printf '%s\n' "$HOSTINGER_SSH_PRIVATE_KEY" > "$ssh_key_path"
+          chmod 600 "$ssh_key_path"
+
+          if [ -n "$HOSTINGER_KNOWN_HOSTS" ]; then
+            printf '%s\n' "$HOSTINGER_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+            strict_host_key_checking="yes"
+          else
+            touch "$HOME/.ssh/known_hosts"
+            strict_host_key_checking="accept-new"
+          fi
+          chmod 644 "$HOME/.ssh/known_hosts"
+
+          {
+            echo "HOSTINGER_SSH_KEY_PATH=$ssh_key_path"
+            echo "HOSTINGER_STRICT_HOST_KEY_CHECKING=$strict_host_key_checking"
+          } >> "$GITHUB_ENV"
+
       - name: Deploy blue/green slot to Hostinger over SFTP
         env:
           HOSTINGER_HOST: ${{ secrets.HOSTINGER_HOST }}
           HOSTINGER_PORT: ${{ secrets.HOSTINGER_PORT }}
           HOSTINGER_REMOTE_PATH: ${{ secrets.HOSTINGER_REMOTE_PATH }}
           HOSTINGER_USERNAME: ${{ secrets.HOSTINGER_USERNAME }}
-          HOSTINGER_PASSWORD: ${{ secrets.HOSTINGER_PASSWORD }}
         run: |
           set -euo pipefail
 
@@ -128,8 +160,9 @@ jobs:
           fi
           SLOTS_ROOT="$HOSTINGER_REMOTE_PATH/.deploy-slots"
           ACTIVE_SLOT_FILE=".active-slot"
+          SSH_CONNECT_PROGRAM="ssh -a -x -i $HOSTINGER_SSH_KEY_PATH -o IdentitiesOnly=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts -o StrictHostKeyChecking=$HOSTINGER_STRICT_HOST_KEY_CHECKING"
 
-          for required in HOSTINGER_HOST HOSTINGER_REMOTE_PATH HOSTINGER_USERNAME HOSTINGER_PASSWORD; do
+          for required in HOSTINGER_HOST HOSTINGER_REMOTE_PATH HOSTINGER_USERNAME HOSTINGER_SSH_KEY_PATH HOSTINGER_STRICT_HOST_KEY_CHECKING; do
             if [ -z "${!required}" ]; then
               echo "::error::Missing required secret: $required"
               exit 1
@@ -143,7 +176,8 @@ jobs:
           trap cleanup EXIT
 
           active_slot="green"
-          if lftp -u "$HOSTINGER_USERNAME","$HOSTINGER_PASSWORD" "sftp://$HOSTINGER_HOST:$HOSTINGER_PORT" <<EOF_LFTP
+          if lftp -u "$HOSTINGER_USERNAME" "sftp://$HOSTINGER_HOST:$HOSTINGER_PORT" <<EOF_LFTP
+          set sftp:connect-program "$SSH_CONNECT_PROGRAM"
           set sftp:auto-confirm yes
           set net:max-retries 2
           set net:reconnect-interval-base 5
@@ -171,7 +205,8 @@ jobs:
 
           printf '%s\n' "$target_slot" > "$tmp_dir/$ACTIVE_SLOT_FILE"
 
-          lftp -u "$HOSTINGER_USERNAME","$HOSTINGER_PASSWORD" "sftp://$HOSTINGER_HOST:$HOSTINGER_PORT" <<EOF_LFTP
+          lftp -u "$HOSTINGER_USERNAME" "sftp://$HOSTINGER_HOST:$HOSTINGER_PORT" <<EOF_LFTP
+          set sftp:connect-program "$SSH_CONNECT_PROGRAM"
           set sftp:auto-confirm yes
           set net:max-retries 2
           set net:reconnect-interval-base 5
@@ -233,13 +268,45 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes lftp
 
+      - name: Configure Hostinger SSH key
+        env:
+          HOSTINGER_KNOWN_HOSTS: ${{ secrets.HOSTINGER_KNOWN_HOSTS }}
+          HOSTINGER_SSH_PRIVATE_KEY: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "$HOSTINGER_SSH_PRIVATE_KEY" ]; then
+            echo "::error::Missing required secret: HOSTINGER_SSH_PRIVATE_KEY"
+            exit 1
+          fi
+
+          mkdir -p "$HOME/.ssh"
+          chmod 700 "$HOME/.ssh"
+
+          ssh_key_path="$RUNNER_TEMP/hostinger_deploy_key"
+          printf '%s\n' "$HOSTINGER_SSH_PRIVATE_KEY" > "$ssh_key_path"
+          chmod 600 "$ssh_key_path"
+
+          if [ -n "$HOSTINGER_KNOWN_HOSTS" ]; then
+            printf '%s\n' "$HOSTINGER_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+            strict_host_key_checking="yes"
+          else
+            touch "$HOME/.ssh/known_hosts"
+            strict_host_key_checking="accept-new"
+          fi
+          chmod 644 "$HOME/.ssh/known_hosts"
+
+          {
+            echo "HOSTINGER_SSH_KEY_PATH=$ssh_key_path"
+            echo "HOSTINGER_STRICT_HOST_KEY_CHECKING=$strict_host_key_checking"
+          } >> "$GITHUB_ENV"
+
       - name: Roll back production to previous slot
         env:
           HOSTINGER_HOST: ${{ secrets.HOSTINGER_HOST }}
           HOSTINGER_PORT: ${{ secrets.HOSTINGER_PORT }}
           HOSTINGER_REMOTE_PATH: ${{ secrets.HOSTINGER_REMOTE_PATH }}
           HOSTINGER_USERNAME: ${{ secrets.HOSTINGER_USERNAME }}
-          HOSTINGER_PASSWORD: ${{ secrets.HOSTINGER_PASSWORD }}
           ROLLBACK_SLOT_INPUT: ${{ github.event.inputs.rollback_slot }}
         run: |
           set -euo pipefail
@@ -250,8 +317,9 @@ jobs:
           fi
           SLOTS_ROOT="$HOSTINGER_REMOTE_PATH/.deploy-slots"
           ACTIVE_SLOT_FILE=".active-slot"
+          SSH_CONNECT_PROGRAM="ssh -a -x -i $HOSTINGER_SSH_KEY_PATH -o IdentitiesOnly=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts -o StrictHostKeyChecking=$HOSTINGER_STRICT_HOST_KEY_CHECKING"
 
-          for required in HOSTINGER_HOST HOSTINGER_REMOTE_PATH HOSTINGER_USERNAME HOSTINGER_PASSWORD; do
+          for required in HOSTINGER_HOST HOSTINGER_REMOTE_PATH HOSTINGER_USERNAME HOSTINGER_SSH_KEY_PATH HOSTINGER_STRICT_HOST_KEY_CHECKING; do
             if [ -z "${!required}" ]; then
               echo "::error::Missing required secret: $required"
               exit 1
@@ -265,7 +333,8 @@ jobs:
           }
           trap cleanup EXIT
 
-          lftp -u "$HOSTINGER_USERNAME","$HOSTINGER_PASSWORD" "sftp://$HOSTINGER_HOST:$HOSTINGER_PORT" <<EOF_LFTP
+          lftp -u "$HOSTINGER_USERNAME" "sftp://$HOSTINGER_HOST:$HOSTINGER_PORT" <<EOF_LFTP
+          set sftp:connect-program "$SSH_CONNECT_PROGRAM"
           set sftp:auto-confirm yes
           set net:max-retries 2
           set net:reconnect-interval-base 5
@@ -300,7 +369,8 @@ jobs:
 
           mkdir -p "$rollback_dist"
 
-          lftp -u "$HOSTINGER_USERNAME","$HOSTINGER_PASSWORD" "sftp://$HOSTINGER_HOST:$HOSTINGER_PORT" <<EOF_LFTP
+          lftp -u "$HOSTINGER_USERNAME" "sftp://$HOSTINGER_HOST:$HOSTINGER_PORT" <<EOF_LFTP
+          set sftp:connect-program "$SSH_CONNECT_PROGRAM"
           set sftp:auto-confirm yes
           set net:max-retries 2
           set net:reconnect-interval-base 5
@@ -316,7 +386,8 @@ jobs:
 
           printf '%s\n' "$rollback_slot" > "$tmp_dir/$ACTIVE_SLOT_FILE"
 
-          lftp -u "$HOSTINGER_USERNAME","$HOSTINGER_PASSWORD" "sftp://$HOSTINGER_HOST:$HOSTINGER_PORT" <<EOF_LFTP
+          lftp -u "$HOSTINGER_USERNAME" "sftp://$HOSTINGER_HOST:$HOSTINGER_PORT" <<EOF_LFTP
+          set sftp:connect-program "$SSH_CONNECT_PROGRAM"
           set sftp:auto-confirm yes
           set net:max-retries 2
           set net:reconnect-interval-base 5

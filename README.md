@@ -84,13 +84,19 @@ Used by the production deploy and rollback jobs. Configure required reviewers he
 
 Required secrets:
 
-| Name                    | Used for            | Recommended value       |
-| ----------------------- | ------------------- | ----------------------- |
-| `HOSTINGER_HOST`        | SFTP host           | Hostinger SFTP hostname |
-| `HOSTINGER_PORT`        | SFTP port           | `22`                    |
-| `HOSTINGER_USERNAME`    | SFTP username       | Hostinger SFTP username |
-| `HOSTINGER_PASSWORD`    | SFTP password       | Hostinger SFTP password |
-| `HOSTINGER_REMOTE_PATH` | Production web root | `public_html/`          |
+| Name                        | Used for                    | Recommended value                                 |
+| --------------------------- | --------------------------- | ------------------------------------------------- |
+| `HOSTINGER_HOST`            | SSH/SFTP host               | Hostinger SSH/SFTP hostname                       |
+| `HOSTINGER_PORT`            | SSH/SFTP port               | Exact SSH/SFTP port shown in Hostinger hPanel     |
+| `HOSTINGER_USERNAME`        | SSH/SFTP username           | Hostinger SSH/SFTP username                       |
+| `HOSTINGER_SSH_PRIVATE_KEY` | SSH private key for deploys | Private key matching a public key added to hPanel |
+| `HOSTINGER_REMOTE_PATH`     | Production web root         | `public_html/`                                    |
+
+Optional secret:
+
+| Name                    | Used for                  | Recommended value                     |
+| ----------------------- | ------------------------- | ------------------------------------- |
+| `HOSTINGER_KNOWN_HOSTS` | SSH host key verification | `ssh-keyscan -p <port> <host>` output |
 
 Optional variable:
 
@@ -141,7 +147,7 @@ git push --follow-tags
 
 Use `patch`, `minor`, or `major` as appropriate. `npm version` updates `package.json` and `package-lock.json`, creates the release commit, and creates the matching tag. `git push --follow-tags` pushes the commit and tag, which starts the production workflow.
 
-The workflow verifies that the Git tag matches the package version, runs formatting, TypeScript, unit, and smoke checks, uploads the built `dist/` artifact, deploys it to the inactive Hostinger blue/green slot, promotes that same build to the live Hostinger web root, updates `.deploy-slots/.active-slot`, and creates the GitHub release.
+The workflow verifies that the Git tag matches the package version, runs formatting, TypeScript, unit, and smoke checks, uploads the built `dist/` artifact, deploys it to the inactive Hostinger blue/green slot using SSH key authentication over SFTP, promotes that same build to the live Hostinger web root, updates `.deploy-slots/.active-slot`, and creates the GitHub release.
 
 If the `prod` environment has required reviewers, the deployment pauses for approval before accessing Hostinger secrets.
 

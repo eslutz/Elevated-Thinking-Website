@@ -46,9 +46,13 @@ Add these exact secret names to the GitHub `prod` environment:
 
 - `HOSTINGER_HOST`
 - `HOSTINGER_USERNAME`
-- `HOSTINGER_PASSWORD`
+- `HOSTINGER_SSH_PRIVATE_KEY`
 - `HOSTINGER_REMOTE_PATH`
-- `HOSTINGER_PORT` (optional, defaults to `22`)
+- `HOSTINGER_PORT`
+
+Optional, but recommended for stricter SSH host verification:
+
+- `HOSTINGER_KNOWN_HOSTS`
 
 Recommended `HOSTINGER_REMOTE_PATH` for this setup: `public_html/`.
 
@@ -58,10 +62,11 @@ Verify all of these with Hostinger:
 
 - The correct SFTP host for `HOSTINGER_HOST`
 - The correct SFTP username for `HOSTINGER_USERNAME`
-- The correct SFTP password for `HOSTINGER_PASSWORD`
+- The private deploy key in `HOSTINGER_SSH_PRIVATE_KEY` matches a public key authorized in Hostinger
 - The correct document root for `HOSTINGER_REMOTE_PATH`
 - Whether SFTP is enabled on the account
-- Whether port `22` is correct
+- The exact SSH/SFTP port shown in Hostinger hPanel for `HOSTINGER_PORT`
+- Optional `HOSTINGER_KNOWN_HOSTS` contains the output of `ssh-keyscan -p <port> <host>`
 
 The production workflow uses `lftp mirror --reverse --delete`, so `HOSTINGER_REMOTE_PATH` must point at the real production web root.
 
@@ -95,5 +100,5 @@ Also verify:
 These are not required for the current pipeline:
 
 - Support preview deployments for forked pull requests with a safer external approval flow.
-- Switch Hostinger auth from password-based SFTP to SSH key auth.
+- Require pinned Hostinger SSH host keys by making `HOSTINGER_KNOWN_HOSTS` mandatory.
 - Add a custom preview domain for Azure Static Web Apps.

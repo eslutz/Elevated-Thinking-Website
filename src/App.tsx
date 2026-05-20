@@ -1,77 +1,46 @@
 import logoUrl from "./assets/elevated-logo.svg";
+import {
+  aiDeliveryImage,
+  heroImage,
+  imageSrcSet,
+  productStrategyImage,
+  serviceWorkflowImage,
+  type ResponsiveImageAsset,
+  uxResearchImage,
+} from "./imageAssets";
 import { useRevealParallax } from "./useRevealParallax";
 
 const calendarUrl = "https://calendar.app.google/ShyxHfNAutZC3Dg7A";
 const footerEmail = "hello@elevatedthinking.co";
 
-type ImageAsset = {
-  photoId: string;
-  alt: string;
-  position?: string;
-};
-
 type Service = {
   title: string;
   body: string;
-  image: ImageAsset;
-};
-
-const imageWidths = [640, 960, 1280, 1600] as const;
-
-const heroImage: ImageAsset = {
-  photoId: "photo-1586717791821-3f44a563fa4c",
-  alt: "Person writing on white paper",
-  position: "center",
+  image: ResponsiveImageAsset;
 };
 
 const services: readonly Service[] = [
   {
     title: "Product strategy",
     body: "Clarify what to build, why it matters, and how decisions ripple across the system before they harden into roadmap debt.",
-    image: {
-      photoId: "photo-1501504905252-473c47e087f8",
-      alt: "MacBook near an open book",
-      position: "center",
-    },
+    image: productStrategyImage,
   },
   {
     title: "Service & workflow design",
     body: "Map the real-world flow of people, policy, tools, and handoffs so teams can reduce friction instead of decorating it.",
-    image: {
-      photoId: "photo-1743385779347-1549dabf1320",
-      alt: "Workflow diagram showing product brief and user goals",
-      position: "center",
-    },
+    image: serviceWorkflowImage,
   },
   {
     title: "UX research & design",
     body: "Design for real users, real constraints, and real environments—especially where stakes are high.",
-    image: {
-      photoId: "photo-1573497620053-ea5300f94f21",
-      alt: "Two women sitting together",
-      position: "center",
-    },
+    image: uxResearchImage,
   },
   {
     title: "AI-enabled delivery",
     body: "Use AI where it improves speed, insight, or decision support—without turning judgment into a black box circus.",
-    image: {
-      photoId: "photo-1541560052-5e137f229371",
-      alt: "Person using a MacBook",
-      position: "center",
-    },
+    image: aiDeliveryImage,
   },
 ];
-
-function unsplashUrl(photoId: string, width: number) {
-  return `https://images.unsplash.com/${photoId}?q=80&w=${width}&auto=format&fit=crop`;
-}
-
-function unsplashSrcSet(photoId: string) {
-  return imageWidths
-    .map((width) => `${unsplashUrl(photoId, width)} ${width}w`)
-    .join(", ");
-}
 
 function ResponsiveImage({
   image,
@@ -79,23 +48,37 @@ function ResponsiveImage({
   eager = false,
   className = "",
 }: {
-  image: ImageAsset;
+  image: ResponsiveImageAsset;
   sizes: string;
   eager?: boolean;
   className?: string;
 }) {
   return (
-    <img
-      alt={image.alt}
-      className={`h-full w-full object-cover ${className}`}
-      decoding="async"
-      fetchPriority={eager ? "high" : "auto"}
-      loading={eager ? "eager" : "lazy"}
-      sizes={sizes}
-      src={unsplashUrl(image.photoId, 960)}
-      srcSet={unsplashSrcSet(image.photoId)}
-      style={{ objectPosition: image.position }}
-    />
+    <picture>
+      <source
+        sizes={sizes}
+        srcSet={imageSrcSet(image.sources.avif)}
+        type="image/avif"
+      />
+      <source
+        sizes={sizes}
+        srcSet={imageSrcSet(image.sources.webp)}
+        type="image/webp"
+      />
+      <img
+        alt={image.alt}
+        className={`h-full w-full object-cover ${className}`}
+        decoding="async"
+        fetchPriority={eager ? "high" : "auto"}
+        height={image.height}
+        loading={eager ? "eager" : "lazy"}
+        sizes={sizes}
+        src={image.sources.jpg[1].src}
+        srcSet={imageSrcSet(image.sources.jpg)}
+        style={{ objectPosition: image.position }}
+        width={image.width}
+      />
+    </picture>
   );
 }
 
@@ -266,20 +249,18 @@ export default function ElevatedOnePageSite() {
       </main>
 
       <footer id="contact" className="border-t border-black/5 px-6 py-10">
-        <div className="mx-auto flex max-w-7xl flex-col justify-between gap-6 lg:flex-row">
-          <div>
-            <img
-              src={logoUrl}
-              alt="Elevated"
-              className="brand-logo brand-logo-footer"
-              width="895"
-              height="130"
-            />
-            <p className="mt-2 text-sm text-[var(--color-primary)]/80">
-              Design-led strategy and AI-enabled product work.
-            </p>
-          </div>
-          <address className="text-sm not-italic">
+        <div className="mx-auto grid max-w-7xl gap-y-2 lg:grid-cols-[auto_1fr] lg:items-end lg:gap-x-8">
+          <img
+            src={logoUrl}
+            alt="Elevated"
+            className="brand-logo brand-logo-footer lg:col-start-1 lg:row-start-1"
+            width="895"
+            height="130"
+          />
+          <p className="text-sm text-[var(--color-primary)]/80 lg:col-start-1 lg:row-start-2">
+            Design-led strategy and AI-enabled product work.
+          </p>
+          <address className="mt-4 text-sm not-italic lg:col-start-2 lg:row-start-2 lg:mt-0 lg:justify-self-end">
             <div>
               <a
                 className="text-inherit"

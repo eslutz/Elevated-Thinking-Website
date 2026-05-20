@@ -70,6 +70,44 @@ test("app exposes favicon assets", async ({ page }) => {
   }
 });
 
+test("page photography loads from local build assets", async ({ page }) => {
+  await gotoApp(page);
+
+  for (const name of [
+    /person writing on white paper/i,
+    /macbook near an open book/i,
+    /workflow diagram/i,
+    /two women sitting together/i,
+    /person using a macbook/i,
+  ]) {
+    const image = page.getByRole("img", { name });
+    await image.scrollIntoViewIfNeeded();
+    await expect(image).toBeVisible();
+    await expect
+      .poll(() =>
+        image.evaluate((element) => {
+          const img = element as HTMLImageElement;
+          return img.complete && img.naturalWidth > 0 && img.naturalHeight > 0;
+        })
+      )
+      .toBe(true);
+  }
+
+  const photoSources = await page
+    .locator("main picture img")
+    .evaluateAll((images) =>
+      images.map((image) => (image as HTMLImageElement).currentSrc)
+    );
+  const pageOrigin = new URL(page.url()).origin;
+
+  expect(photoSources).toHaveLength(5);
+  for (const source of photoSources) {
+    const url = new URL(source);
+    expect(url.origin).toBe(pageOrigin);
+    expect(url.pathname).toContain("/assets/");
+  }
+});
+
 test("app has no critical accessibility violations", async ({ page }) => {
   await gotoApp(page);
 

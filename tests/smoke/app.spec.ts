@@ -70,6 +70,72 @@ test("app exposes favicon assets", async ({ page }) => {
   }
 });
 
+test("app exposes SEO and sharing metadata", async ({ page }) => {
+  await page.goto("/");
+
+  await expect(page).toHaveTitle("Elevated Thinking");
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+    "href",
+    "https://www.elevatedthinking.co/"
+  );
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
+    "content",
+    "index,follow,max-image-preview:large"
+  );
+
+  const expectedOgTags = {
+    "og:site_name": "Elevated Thinking",
+    "og:title": "Elevated Thinking",
+    "og:description":
+      "Design-led strategy and AI-enabled product work for complex environments.",
+    "og:type": "website",
+    "og:url": "https://www.elevatedthinking.co/",
+    "og:image": "https://www.elevatedthinking.co/og-image.jpg",
+    "og:image:width": "1200",
+    "og:image:height": "630",
+    "og:image:alt": "Elevated Thinking",
+    "og:locale": "en_US",
+  };
+
+  for (const [property, content] of Object.entries(expectedOgTags)) {
+    await expect(page.locator(`meta[property="${property}"]`)).toHaveAttribute(
+      "content",
+      content
+    );
+  }
+
+  await expect(page.locator('meta[name^="twitter:"]')).toHaveCount(0);
+});
+
+test("generated SEO files and permanent social preview image are served", async ({
+  page,
+}) => {
+  const robotsResponse = await page.request.get("/robots.txt");
+  expect(robotsResponse.ok()).toBe(true);
+  const robotsText = await robotsResponse.text();
+  expect(robotsText).toContain("User-agent: *");
+  expect(robotsText).toContain("Allow: /");
+  expect(robotsText).toContain(
+    "Sitemap: https://www.elevatedthinking.co/sitemap.xml"
+  );
+
+  const sitemapResponse = await page.request.get("/sitemap.xml");
+  expect(sitemapResponse.ok()).toBe(true);
+  const sitemapText = await sitemapResponse.text();
+  expect(sitemapText).toMatch(
+    /<loc>\s*https:\/\/www\.elevatedthinking\.co\/\s*<\/loc>/
+  );
+  expect(
+    sitemapText.match(
+      /<loc>\s*https:\/\/www\.elevatedthinking\.co\/\s*<\/loc>/g
+    )
+  ).toHaveLength(1);
+
+  const ogImageResponse = await page.request.get("/og-image.jpg");
+  expect(ogImageResponse.ok()).toBe(true);
+  expect(ogImageResponse.headers()["content-type"]).toContain("image/jpeg");
+});
+
 test("page photography loads from local build assets", async ({ page }) => {
   await gotoApp(page);
 
